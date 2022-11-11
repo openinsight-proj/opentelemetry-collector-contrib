@@ -308,14 +308,6 @@ func (p *processor) updateSeries(key string, dimensions pcommon.Map) {
 	}
 }
 
-func (p *processor) dimensionsForSeries(key string) (pcommon.Map, bool) {
-	if series, ok := p.keyToMetric[key]; ok {
-		return series.dimensions, true
-	}
-
-	return pcommon.Map{}, false
-}
-
 func (p *processor) updateCountMetrics(key string) { p.reqTotal[key]++ }
 
 func (p *processor) updateErrorMetrics(key string) { p.reqFailedTotal[key]++ }
