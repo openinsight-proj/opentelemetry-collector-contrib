@@ -370,7 +370,11 @@ func (p *serviceGraphProcessor) buildMetrics() (pmetric.Metrics, error) {
 }
 
 func (p *serviceGraphProcessor) collectCountMetrics(ilm pmetric.ScopeMetrics) error {
-	for key, c := range p.reqTotal {
+	for key := range p.keyToMetric {
+		value, ok := p.reqTotal[key]
+		if !ok {
+			return fmt.Errorf("value not found in reqTotal by key %s", key)
+		}
 		mCount := ilm.Metrics().AppendEmpty()
 		mCount.SetName("traces_service_graph_request_total")
 		mCount.SetEmptySum().SetIsMonotonic(true)
@@ -380,41 +384,46 @@ func (p *serviceGraphProcessor) collectCountMetrics(ilm pmetric.ScopeMetrics) er
 		dpCalls := mCount.Sum().DataPoints().AppendEmpty()
 		dpCalls.SetStartTimestamp(pcommon.NewTimestampFromTime(p.startTime))
 		dpCalls.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-		dpCalls.SetIntValue(c)
+		dpCalls.SetIntValue(value)
 
 		dimensions, ok := p.dimensionsForSeries(key)
 		if !ok {
 			return fmt.Errorf("failed to find dimensions for key %s", key)
 		}
 
-		dimensions.CopyTo(dpCalls.Attributes())
-	}
+		value, ok = p.reqFailedTotal[key]
+		if ok {
+			mCount = ilm.Metrics().AppendEmpty()
+			mCount.SetName("traces_service_graph_request_failed_total")
+			mCount.SetEmptySum().SetIsMonotonic(true)
+			// TODO: Support other aggregation temporalities
+			mCount.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
 
-	for key, c := range p.reqFailedTotal {
-		mCount := ilm.Metrics().AppendEmpty()
-		mCount.SetName("traces_service_graph_request_failed_total")
-		mCount.SetEmptySum().SetIsMonotonic(true)
-		// TODO: Support other aggregation temporalities
-		mCount.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
+			dpCalls = mCount.Sum().DataPoints().AppendEmpty()
+			dpCalls.SetStartTimestamp(pcommon.NewTimestampFromTime(p.startTime))
+			dpCalls.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+			dpCalls.SetIntValue(value)
 
-		dpCalls := mCount.Sum().DataPoints().AppendEmpty()
-		dpCalls.SetStartTimestamp(pcommon.NewTimestampFromTime(p.startTime))
-		dpCalls.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-		dpCalls.SetIntValue(c)
+			dimensions, ok := p.dimensionsForSeries(key)
+			if !ok {
+				return fmt.Errorf("failed to find dimensions for key %s", key)
+			}
 
-		dimensions, ok := p.dimensionsForSeries(key)
-		if !ok {
-			return fmt.Errorf("failed to find dimensions for key %s", key)
 		}
-
-		dimensions.CopyTo(dpCalls.Attributes())
 	}
 
 	return nil
+
+
+
 }
 
 func (p *serviceGraphProcessor) collectLatencyMetrics(ilm pmetric.ScopeMetrics) error {
-	for key := range p.reqDurationSecondsCount {
+	for key := range p.keyToMetric {
+		_, ok := p.reqDurationSecondsCount[key]
+		if !ok {
+			return fmt.Errorf("value not found in reqDurationSecondsCount by key %s", key)
+		}
 		mDuration := ilm.Metrics().AppendEmpty()
 		mDuration.SetName("traces_service_graph_request_duration_seconds")
 		// TODO: Support other aggregation temporalities
@@ -439,6 +448,7 @@ func (p *serviceGraphProcessor) collectLatencyMetrics(ilm pmetric.ScopeMetrics) 
 
 		dimensions.CopyTo(dpDuration.Attributes())
 	}
+
 	return nil
 }
 
