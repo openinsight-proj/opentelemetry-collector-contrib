@@ -391,8 +391,8 @@ func (p *serviceGraphProcessor) collectCountMetrics(ilm pmetric.ScopeMetrics) er
 			return fmt.Errorf("failed to find dimensions for key %s", key)
 		}
 
-		value, ok = p.reqFailedTotal[key]
-		if ok {
+		if v, _ := series.dimensions.Get("failed"); v.Equal(pcommon.NewValueBool(true)) {
+			value, _ = p.reqFailedTotal[key]
 			mCount = ilm.Metrics().AppendEmpty()
 			mCount.SetName("traces_service_graph_request_failed_total")
 			mCount.SetEmptySum().SetIsMonotonic(true)
