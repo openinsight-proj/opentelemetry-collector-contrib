@@ -342,7 +342,7 @@ func buildDimensions(e *store.Edge) pcommon.Map {
 	dims.PutStr("client", e.ClientService)
 	dims.PutStr("server", e.ServerService)
 	dims.PutStr("connection_type", string(e.ConnectionType))
-	dims.PutBool("failed", e.Failed)
+	//dims.PutBool("failed", e.Failed)
 	for k, v := range e.Dimensions {
 		dims.PutStr(k, v)
 	}
@@ -391,8 +391,7 @@ func (p *serviceGraphProcessor) collectCountMetrics(ilm pmetric.ScopeMetrics) er
 			return fmt.Errorf("failed to find dimensions for key %s", key)
 		}
 
-		if v, _ := series.dimensions.Get("failed"); v.Equal(pcommon.NewValueBool(true)) {
-			value, _ = p.reqFailedTotal[key]
+		if value, ok = p.reqFailedTotal[key]; ok {
 			mCount = ilm.Metrics().AppendEmpty()
 			mCount.SetName("traces_service_graph_request_failed_total")
 			mCount.SetEmptySum().SetIsMonotonic(true)
