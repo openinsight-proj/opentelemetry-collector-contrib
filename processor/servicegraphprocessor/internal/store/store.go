@@ -119,8 +119,34 @@ func (s *Store) Expire() {
 	defer s.mtx.Unlock()
 
 	// Iterates until no more items can be evicted
-	for s.tryEvictHead() {
+	for s.trySpeculateEvictHead() {
+		s.tryEvictHead()
 	}
+}
+
+// speculate virtual node before edge get expired.
+func (s *Store) trySpeculateEvictHead() bool {
+	head := s.l.Front()
+	if head == nil {
+		return false // list is empty
+	}
+	headEdge := head.Value.(*Edge)
+	if !headEdge.isExpired() {
+		return false
+	}
+
+	if len(headEdge.ClientService) == 0 {
+		headEdge.ClientService = "user"
+	}
+
+	if len(headEdge.ServerService) == 0 {
+		headEdge.ServerService = "unknown"
+	}
+
+	if headEdge.isComplete() {
+		s.onComplete(headEdge)
+	}
+	return true
 }
 
 // tryEvictHead checks if the oldest item (head of list) can be evicted and will delete it if so.

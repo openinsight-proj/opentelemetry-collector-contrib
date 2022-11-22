@@ -91,6 +91,8 @@ func initProvider() func() {
 		resource.WithAttributes(
 			// the service name used to display traces in backends
 			semconv.ServiceNameKey.String("demo-client"),
+			attribute.String("cluster", "client-cluster"),
+			attribute.String("namespace", "client-namespace"),
 		),
 	)
 	handleErr(err, "failed to create resource")
