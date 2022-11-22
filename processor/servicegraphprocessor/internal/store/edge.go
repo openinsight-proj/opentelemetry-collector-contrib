@@ -28,14 +28,18 @@ const (
 	Database        ConnectionType = "database"
 )
 
+type Peer struct {
+	RpcAttributes map[string]string
+}
+
 // Edge is an Edge between two nodes in the graph
 type Edge struct {
 	key Key
 
-	TraceID                            pcommon.TraceID
-	ConnectionType                     ConnectionType
-	ServerService, ClientService       string
-	ServerLatencySec, ClientLatencySec float64
+	TraceID                                pcommon.TraceID
+	ConnectionType                         ConnectionType
+	ServerService, ClientService, PeerHost string
+	ServerLatencySec, ClientLatencySec     float64
 
 	// If either the client or the server spans have status code error,
 	// the Edge will be considered as failed.
@@ -46,12 +50,14 @@ type Edge struct {
 
 	// expiration is the time at which the Edge expires, expressed as Unix time
 	expiration time.Time
+	Peer       Peer
 }
 
 func newEdge(key Key, ttl time.Duration) *Edge {
 	return &Edge{
 		key:        key,
 		Dimensions: make(map[string]string),
+		Peer:       Peer{RpcAttributes: make(map[string]string)},
 		expiration: time.Now().Add(ttl),
 	}
 }

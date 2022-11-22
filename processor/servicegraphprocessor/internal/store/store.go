@@ -17,6 +17,7 @@ package store // import "github.com/open-telemetry/opentelemetry-collector-contr
 import (
 	"container/list"
 	"errors"
+	semconv "go.opentelemetry.io/collector/semconv/v1.13.0"
 	"sync"
 	"time"
 
@@ -24,7 +25,8 @@ import (
 )
 
 var (
-	ErrTooManyItems = errors.New("too many items")
+	ErrTooManyItems      = errors.New("too many items")
+	NeedToFindAttributes = []string{semconv.AttributeNetSockHostAddr, semconv.AttributeRPCService, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget, semconv.AttributeHTTPURL, semconv.AttributeNetPeerName, semconv.AttributeNetHostName}
 )
 
 type Callback func(e *Edge)
@@ -140,13 +142,23 @@ func (s *Store) trySpeculateEvictHead() bool {
 	}
 
 	if len(headEdge.ServerService) == 0 {
-		headEdge.ServerService = "unknown"
+		headEdge.ServerService = s.getPeerHost(NeedToFindAttributes, headEdge.Peer.RpcAttributes)
 	}
 
 	if headEdge.isComplete() {
 		s.onComplete(headEdge)
 	}
 	return true
+}
+
+func (s *Store) getPeerHost(m []string, peers map[string]string) string {
+	peerStr := "unknown"
+	for _, s := range m {
+		if len(peers[s]) != 0 {
+			peerStr = peers[s]
+		}
+	}
+	return peerStr
 }
 
 // tryEvictHead checks if the oldest item (head of list) can be evicted and will delete it if so.
