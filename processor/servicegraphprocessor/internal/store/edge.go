@@ -36,10 +36,10 @@ type Peer struct {
 type Edge struct {
 	key Key
 
-	TraceID                                pcommon.TraceID
-	ConnectionType                         ConnectionType
-	ServerService, ClientService, PeerHost string
-	ServerLatencySec, ClientLatencySec     float64
+	TraceID                            pcommon.TraceID
+	ConnectionType                     ConnectionType
+	ServerService, ClientService       string
+	ServerLatencySec, ClientLatencySec float64
 
 	// If either the client or the server spans have status code error,
 	// the Edge will be considered as failed.

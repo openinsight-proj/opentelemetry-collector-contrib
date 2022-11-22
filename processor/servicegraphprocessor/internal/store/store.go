@@ -25,8 +25,9 @@ import (
 )
 
 var (
-	ErrTooManyItems      = errors.New("too many items")
-	NeedToFindAttributes = []string{semconv.AttributeNetSockHostAddr, semconv.AttributeRPCService, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget, semconv.AttributeHTTPURL, semconv.AttributeNetPeerName, semconv.AttributeNetHostName}
+	ErrTooManyItems = errors.New("too many items")
+	// NeedToFindAttributes the list of attributes need to matches, the higher the front, the higher the priority.
+	NeedToFindAttributes = []string{semconv.AttributeNetSockHostAddr, semconv.AttributeRPCService, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget, semconv.AttributeNetPeerName, semconv.AttributeNetHostName}
 )
 
 type Callback func(e *Edge)
@@ -156,6 +157,7 @@ func (s *Store) getPeerHost(m []string, peers map[string]string) string {
 	for _, s := range m {
 		if len(peers[s]) != 0 {
 			peerStr = peers[s]
+			break
 		}
 	}
 	return peerStr
