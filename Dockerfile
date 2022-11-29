@@ -3,8 +3,12 @@ RUN apk --update add ca-certificates
 
 RUN mkdir -p /tmp
 
-FROM golang:1.19 AS builder
-COPY ./cmd/otelcontribcol_$(GOOS)_$(GOARCH) /otelcol-contrib
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.19 AS builder
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+COPY ./cmd/otelcontribcol_${TARGETOS}_${TARGETARCH} /otelcol-contrib
 
 FROM scratch
 
