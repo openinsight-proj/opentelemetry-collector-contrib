@@ -97,9 +97,9 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.ACTIONS_TOKEN }}
       - name: Build otel col contrib amd64
-        run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_$(GOOS)_$(GOARCH) ./cmd/otelcontribcol_$(GOOS)_$(GOARCH)
+        run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_linux_amd64 ./cmd/otelcontribcol_linux_amd64
       - name: Build otel col contrib arm64
-        run: GOOS=linux GOARCH=arm64 make otelcontribcol && cp ./bin/otelcontribcol_$(GOOS)_$(GOARCH) ./cmd/otelcontribcol_$(GOOS)_$(GOARCH)
+        run: GOOS=linux GOARCH=arm64 make otelcontribcol && cp ./bin/otelcontribcol_linux_arm64 ./cmd/otelcontribcol_linux_arm64
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.1.0
       - name: Set up Docker Buildx
