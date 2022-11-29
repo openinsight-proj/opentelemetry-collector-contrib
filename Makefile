@@ -257,6 +257,14 @@ endif
 docker-otelcontribcol:
 	COMPONENT=otelcontribcol $(MAKE) docker-component
 
+.PHONY:
+build-push-multiplatform:
+	docker buildx build \
+		--push \
+		--platform linux/amd64,linux/arm64 \
+		--tag ${IMG} \
+		.
+
 .PHONY: generate
 generate:
 	cd cmd/mdatagen && $(GOCMD) install .
