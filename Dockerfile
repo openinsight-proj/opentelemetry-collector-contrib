@@ -5,6 +5,7 @@ RUN mkdir -p /tmp
 
 FROM golang:1.19 AS builder
 WORKDIR /build
+COPY . .
 RUN make gomoddownload && make install-tools && make otelcontribcol
 
 FROM scratch
