@@ -42,6 +42,7 @@ func TestLoadConfig(t *testing.T) {
 		&Config{
 			MetricsExporter:         "metrics",
 			LatencyHistogramBuckets: []time.Duration{1, 2, 3, 4, 5},
+			VirtualNodeEnabled:      true,
 			Dimensions:              []string{"dimension-1", "dimension-2"},
 			Store: StoreConfig{
 				TTL:      time.Second,

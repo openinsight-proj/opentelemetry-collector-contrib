@@ -49,14 +49,15 @@ type Store struct {
 	onComplete Callback
 	onExpire   Callback
 
-	ttl      time.Duration
-	maxItems int
+	ttl                time.Duration
+	maxItems           int
+	virtualNodeEnabled bool
 }
 
 // NewStore creates a Store to build service graphs. The store caches edges, each representing a
 // request between two services. Once an edge is complete its metrics can be collected. Edges that
 // have not found their pair are deleted after ttl time.
-func NewStore(ttl time.Duration, maxItems int, onComplete, onExpire Callback) *Store {
+func NewStore(ttl time.Duration, maxItems int, onComplete, onExpire Callback, virtualNodeEnabled bool) *Store {
 	s := &Store{
 		l: list.New(),
 		m: make(map[Key]*list.Element),
@@ -64,8 +65,9 @@ func NewStore(ttl time.Duration, maxItems int, onComplete, onExpire Callback) *S
 		onComplete: onComplete,
 		onExpire:   onExpire,
 
-		ttl:      ttl,
-		maxItems: maxItems,
+		ttl:                ttl,
+		maxItems:           maxItems,
+		virtualNodeEnabled: virtualNodeEnabled,
 	}
 
 	return s
@@ -122,8 +124,14 @@ func (s *Store) Expire() {
 	defer s.mtx.Unlock()
 
 	// Iterates until no more items can be evicted
-	for s.trySpeculateEvictHead() {
-		s.tryEvictHead()
+	if s.virtualNodeEnabled {
+		for s.trySpeculateEvictHead() {
+			s.tryEvictHead()
+		}
+	} else {
+		for s.tryEvictHead() {
+
+		}
 	}
 }
 
