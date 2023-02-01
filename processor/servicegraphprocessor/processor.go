@@ -107,7 +107,7 @@ func newProcessor(logger *zap.Logger, config component.Config, nextConsumer cons
 }
 
 func (p *serviceGraphProcessor) Start(_ context.Context, host component.Host) error {
-	p.store = store.NewStore(p.config.Store.TTL, p.config.Store.MaxItems, p.onComplete, p.onExpire)
+	p.store = store.NewStore(p.config.Store.TTL, p.config.Store.MaxItems, p.onComplete, p.onExpire, p.config.VirtualNodeEnabled)
 
 	exporters := host.GetExporters()
 
