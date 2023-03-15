@@ -4,7 +4,6 @@ package metadata
 
 import (
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,164 +17,183 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 )
 
-func TestDefaultMetrics(t *testing.T) {
-	start := pcommon.Timestamp(1_000_000_000)
-	ts := pcommon.Timestamp(1_000_001_000)
-	observedZapCore, observedLogs := observer.New(zap.WarnLevel)
-	settings := receivertest.NewNopCreateSettings()
-	settings.Logger = zap.New(observedZapCore)
-	mb := NewMetricsBuilder(loadConfig(t, "default"), settings, WithStartTime(start))
+type testConfigCollection int
 
-	assert.Equal(t, "[WARNING] Please set `enabled` field explicitly for `default.metric`: This metric will be disabled by default soon.", observedLogs.All()[0].Message)
-	assert.Equal(t, "[WARNING] `default.metric.to_be_removed` should not be enabled: This metric is deprecated and will be removed soon.", observedLogs.All()[1].Message)
-	assert.Equal(t, 2, observedLogs.Len())
+const (
+	testSetDefault testConfigCollection = iota
+	testSetAll
+	testSetNone
+)
 
-	enabledMetrics := make(map[string]bool)
-
-	enabledMetrics["default.metric"] = true
-	mb.RecordDefaultMetricDataPoint(ts, 1, "attr-val", 1, AttributeEnumAttr(1))
-
-	enabledMetrics["default.metric.to_be_removed"] = true
-	mb.RecordDefaultMetricToBeRemovedDataPoint(ts, 1)
-
-	mb.RecordOptionalMetricDataPoint(ts, 1, "attr-val", true)
-
-	metrics := mb.Emit()
-
-	assert.Equal(t, 1, metrics.ResourceMetrics().Len())
-	sm := metrics.ResourceMetrics().At(0).ScopeMetrics()
-	assert.Equal(t, 1, sm.Len())
-	ms := sm.At(0).Metrics()
-	assert.Equal(t, len(enabledMetrics), ms.Len())
-	seenMetrics := make(map[string]bool)
-	for i := 0; i < ms.Len(); i++ {
-		assert.True(t, enabledMetrics[ms.At(i).Name()])
-		seenMetrics[ms.At(i).Name()] = true
+func TestMetricsBuilder(t *testing.T) {
+	tests := []struct {
+		name      string
+		configSet testConfigCollection
+	}{
+		{
+			name:      "default",
+			configSet: testSetDefault,
+		},
+		{
+			name:      "all_set",
+			configSet: testSetAll,
+		},
+		{
+			name:      "none_set",
+			configSet: testSetNone,
+		},
 	}
-	assert.Equal(t, len(enabledMetrics), len(seenMetrics))
-}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			start := pcommon.Timestamp(1_000_000_000)
+			ts := pcommon.Timestamp(1_000_001_000)
+			observedZapCore, observedLogs := observer.New(zap.WarnLevel)
+			settings := receivertest.NewNopCreateSettings()
+			settings.Logger = zap.New(observedZapCore)
+			mb := NewMetricsBuilder(loadConfig(t, test.name), settings, WithStartTime(start))
 
-func TestAllMetrics(t *testing.T) {
-	start := pcommon.Timestamp(1_000_000_000)
-	ts := pcommon.Timestamp(1_000_001_000)
-	observedZapCore, observedLogs := observer.New(zap.WarnLevel)
-	settings := receivertest.NewNopCreateSettings()
-	settings.Logger = zap.New(observedZapCore)
-	mb := NewMetricsBuilder(loadConfig(t, "all_metrics"), settings, WithStartTime(start))
+			expectedWarnings := 0
+			if test.configSet == testSetDefault {
+				assert.Equal(t, "[WARNING] Please set `enabled` field explicitly for `default.metric`: This metric will be disabled by default soon.", observedLogs.All()[expectedWarnings].Message)
+				expectedWarnings++
+			}
+			if test.configSet == testSetDefault || test.configSet == testSetAll {
+				assert.Equal(t, "[WARNING] `default.metric.to_be_removed` should not be enabled: This metric is deprecated and will be removed soon.", observedLogs.All()[expectedWarnings].Message)
+				expectedWarnings++
+			}
+			if test.configSet == testSetAll || test.configSet == testSetNone {
+				assert.Equal(t, "[WARNING] `optional.metric` should not be configured: This metric is deprecated and will be removed soon.", observedLogs.All()[expectedWarnings].Message)
+				expectedWarnings++
+			}
+			assert.Equal(t, expectedWarnings, observedLogs.Len())
 
-	assert.Equal(t, "[WARNING] `default.metric.to_be_removed` should not be enabled: This metric is deprecated and will be removed soon.", observedLogs.All()[0].Message)
-	assert.Equal(t, "[WARNING] `optional.metric` should not be configured: This metric is deprecated and will be removed soon.", observedLogs.All()[1].Message)
-	assert.Equal(t, 2, observedLogs.Len())
+			defaultMetricsCount := 0
+			allMetricsCount := 0
 
-	mb.RecordDefaultMetricDataPoint(ts, 1, "attr-val", 1, AttributeEnumAttr(1))
-	mb.RecordDefaultMetricToBeRemovedDataPoint(ts, 1)
-	mb.RecordOptionalMetricDataPoint(ts, 1, "attr-val", true)
+			defaultMetricsCount++
+			allMetricsCount++
+			mb.RecordDefaultMetricDataPoint(ts, 1, "attr-val", 1, AttributeEnumAttr(1))
 
-	metrics := mb.Emit(WithStringEnumResourceAttrOne, WithStringResourceAttr("attr-val"))
+			defaultMetricsCount++
+			allMetricsCount++
+			mb.RecordDefaultMetricToBeRemovedDataPoint(ts, 1)
 
-	assert.Equal(t, 1, metrics.ResourceMetrics().Len())
-	rm := metrics.ResourceMetrics().At(0)
-	attrCount := 0
-	attrCount++
-	attrVal, ok := rm.Resource().Attributes().Get("string.enum.resource.attr")
-	assert.True(t, ok)
-	assert.Equal(t, "one", attrVal.Str())
-	attrCount++
-	attrVal, ok = rm.Resource().Attributes().Get("string.resource.attr")
-	assert.True(t, ok)
-	assert.EqualValues(t, "attr-val", attrVal.Str())
-	assert.Equal(t, attrCount, rm.Resource().Attributes().Len())
+			allMetricsCount++
+			mb.RecordOptionalMetricDataPoint(ts, 1, "attr-val", true)
 
-	assert.Equal(t, 1, rm.ScopeMetrics().Len())
-	ms := rm.ScopeMetrics().At(0).Metrics()
-	allMetricsCount := reflect.TypeOf(MetricsSettings{}).NumField()
-	assert.Equal(t, allMetricsCount, ms.Len())
-	validatedMetrics := make(map[string]struct{})
-	for i := 0; i < ms.Len(); i++ {
-		switch ms.At(i).Name() {
-		case "default.metric":
-			assert.Equal(t, pmetric.MetricTypeSum, ms.At(i).Type())
-			assert.Equal(t, 1, ms.At(i).Sum().DataPoints().Len())
-			assert.Equal(t, "Monotonic cumulative sum int metric enabled by default.", ms.At(i).Description())
-			assert.Equal(t, "s", ms.At(i).Unit())
-			assert.Equal(t, true, ms.At(i).Sum().IsMonotonic())
-			assert.Equal(t, pmetric.AggregationTemporalityCumulative, ms.At(i).Sum().AggregationTemporality())
-			dp := ms.At(i).Sum().DataPoints().At(0)
-			assert.Equal(t, start, dp.StartTimestamp())
-			assert.Equal(t, ts, dp.Timestamp())
-			assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
-			assert.Equal(t, int64(1), dp.IntValue())
-			attrVal, ok := dp.Attributes().Get("string_attr")
-			assert.True(t, ok)
-			assert.EqualValues(t, "attr-val", attrVal.Str())
-			attrVal, ok = dp.Attributes().Get("state")
-			assert.True(t, ok)
-			assert.EqualValues(t, 1, attrVal.Int())
-			attrVal, ok = dp.Attributes().Get("enum_attr")
-			assert.True(t, ok)
-			assert.Equal(t, "red", attrVal.Str())
-			validatedMetrics["default.metric"] = struct{}{}
-		case "default.metric.to_be_removed":
-			assert.Equal(t, pmetric.MetricTypeSum, ms.At(i).Type())
-			assert.Equal(t, 1, ms.At(i).Sum().DataPoints().Len())
-			assert.Equal(t, "[DEPRECATED] Non-monotonic delta sum double metric enabled by default.", ms.At(i).Description())
-			assert.Equal(t, "s", ms.At(i).Unit())
-			assert.Equal(t, false, ms.At(i).Sum().IsMonotonic())
-			assert.Equal(t, pmetric.AggregationTemporalityDelta, ms.At(i).Sum().AggregationTemporality())
-			dp := ms.At(i).Sum().DataPoints().At(0)
-			assert.Equal(t, start, dp.StartTimestamp())
-			assert.Equal(t, ts, dp.Timestamp())
-			assert.Equal(t, pmetric.NumberDataPointValueTypeDouble, dp.ValueType())
-			assert.Equal(t, float64(1), dp.DoubleValue())
-			validatedMetrics["default.metric.to_be_removed"] = struct{}{}
-		case "optional.metric":
-			assert.Equal(t, pmetric.MetricTypeGauge, ms.At(i).Type())
-			assert.Equal(t, 1, ms.At(i).Gauge().DataPoints().Len())
-			assert.Equal(t, "[DEPRECATED] Gauge double metric disabled by default.", ms.At(i).Description())
-			assert.Equal(t, "1", ms.At(i).Unit())
-			dp := ms.At(i).Gauge().DataPoints().At(0)
-			assert.Equal(t, start, dp.StartTimestamp())
-			assert.Equal(t, ts, dp.Timestamp())
-			assert.Equal(t, pmetric.NumberDataPointValueTypeDouble, dp.ValueType())
-			assert.Equal(t, float64(1), dp.DoubleValue())
-			attrVal, ok := dp.Attributes().Get("string_attr")
-			assert.True(t, ok)
-			assert.EqualValues(t, "attr-val", attrVal.Str())
-			attrVal, ok = dp.Attributes().Get("boolean_attr")
-			assert.True(t, ok)
-			assert.EqualValues(t, true, attrVal.Bool())
-			validatedMetrics["optional.metric"] = struct{}{}
-		}
+			metrics := mb.Emit(WithOptionalResourceAttr("attr-val"), WithStringEnumResourceAttrOne, WithStringResourceAttr("attr-val"))
+
+			if test.configSet == testSetNone {
+				assert.Equal(t, 0, metrics.ResourceMetrics().Len())
+				return
+			}
+
+			assert.Equal(t, 1, metrics.ResourceMetrics().Len())
+			rm := metrics.ResourceMetrics().At(0)
+			attrCount := 0
+			enabledAttrCount := 0
+			attrVal, ok := rm.Resource().Attributes().Get("optional.resource.attr")
+			attrCount++
+			assert.Equal(t, mb.resourceAttributesSettings.OptionalResourceAttr.Enabled, ok)
+			if mb.resourceAttributesSettings.OptionalResourceAttr.Enabled {
+				enabledAttrCount++
+				assert.EqualValues(t, "attr-val", attrVal.Str())
+			}
+			attrVal, ok = rm.Resource().Attributes().Get("string.enum.resource.attr")
+			attrCount++
+			assert.Equal(t, mb.resourceAttributesSettings.StringEnumResourceAttr.Enabled, ok)
+			if mb.resourceAttributesSettings.StringEnumResourceAttr.Enabled {
+				enabledAttrCount++
+				assert.Equal(t, "one", attrVal.Str())
+			}
+			attrVal, ok = rm.Resource().Attributes().Get("string.resource.attr")
+			attrCount++
+			assert.Equal(t, mb.resourceAttributesSettings.StringResourceAttr.Enabled, ok)
+			if mb.resourceAttributesSettings.StringResourceAttr.Enabled {
+				enabledAttrCount++
+				assert.EqualValues(t, "attr-val", attrVal.Str())
+			}
+			assert.Equal(t, enabledAttrCount, rm.Resource().Attributes().Len())
+			assert.Equal(t, attrCount, 3)
+
+			assert.Equal(t, 1, rm.ScopeMetrics().Len())
+			ms := rm.ScopeMetrics().At(0).Metrics()
+			if test.configSet == testSetDefault {
+				assert.Equal(t, defaultMetricsCount, ms.Len())
+			}
+			if test.configSet == testSetAll {
+				assert.Equal(t, allMetricsCount, ms.Len())
+			}
+			validatedMetrics := make(map[string]bool)
+			for i := 0; i < ms.Len(); i++ {
+				switch ms.At(i).Name() {
+				case "default.metric":
+					assert.False(t, validatedMetrics["default.metric"], "Found a duplicate in the metrics slice: default.metric")
+					validatedMetrics["default.metric"] = true
+					assert.Equal(t, pmetric.MetricTypeSum, ms.At(i).Type())
+					assert.Equal(t, 1, ms.At(i).Sum().DataPoints().Len())
+					assert.Equal(t, "Monotonic cumulative sum int metric enabled by default.", ms.At(i).Description())
+					assert.Equal(t, "s", ms.At(i).Unit())
+					assert.Equal(t, true, ms.At(i).Sum().IsMonotonic())
+					assert.Equal(t, pmetric.AggregationTemporalityCumulative, ms.At(i).Sum().AggregationTemporality())
+					dp := ms.At(i).Sum().DataPoints().At(0)
+					assert.Equal(t, start, dp.StartTimestamp())
+					assert.Equal(t, ts, dp.Timestamp())
+					assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
+					assert.Equal(t, int64(1), dp.IntValue())
+					attrVal, ok := dp.Attributes().Get("string_attr")
+					assert.True(t, ok)
+					assert.EqualValues(t, "attr-val", attrVal.Str())
+					attrVal, ok = dp.Attributes().Get("state")
+					assert.True(t, ok)
+					assert.EqualValues(t, 1, attrVal.Int())
+					attrVal, ok = dp.Attributes().Get("enum_attr")
+					assert.True(t, ok)
+					assert.Equal(t, "red", attrVal.Str())
+				case "default.metric.to_be_removed":
+					assert.False(t, validatedMetrics["default.metric.to_be_removed"], "Found a duplicate in the metrics slice: default.metric.to_be_removed")
+					validatedMetrics["default.metric.to_be_removed"] = true
+					assert.Equal(t, pmetric.MetricTypeSum, ms.At(i).Type())
+					assert.Equal(t, 1, ms.At(i).Sum().DataPoints().Len())
+					assert.Equal(t, "[DEPRECATED] Non-monotonic delta sum double metric enabled by default.", ms.At(i).Description())
+					assert.Equal(t, "s", ms.At(i).Unit())
+					assert.Equal(t, false, ms.At(i).Sum().IsMonotonic())
+					assert.Equal(t, pmetric.AggregationTemporalityDelta, ms.At(i).Sum().AggregationTemporality())
+					dp := ms.At(i).Sum().DataPoints().At(0)
+					assert.Equal(t, start, dp.StartTimestamp())
+					assert.Equal(t, ts, dp.Timestamp())
+					assert.Equal(t, pmetric.NumberDataPointValueTypeDouble, dp.ValueType())
+					assert.Equal(t, float64(1), dp.DoubleValue())
+				case "optional.metric":
+					assert.False(t, validatedMetrics["optional.metric"], "Found a duplicate in the metrics slice: optional.metric")
+					validatedMetrics["optional.metric"] = true
+					assert.Equal(t, pmetric.MetricTypeGauge, ms.At(i).Type())
+					assert.Equal(t, 1, ms.At(i).Gauge().DataPoints().Len())
+					assert.Equal(t, "[DEPRECATED] Gauge double metric disabled by default.", ms.At(i).Description())
+					assert.Equal(t, "1", ms.At(i).Unit())
+					dp := ms.At(i).Gauge().DataPoints().At(0)
+					assert.Equal(t, start, dp.StartTimestamp())
+					assert.Equal(t, ts, dp.Timestamp())
+					assert.Equal(t, pmetric.NumberDataPointValueTypeDouble, dp.ValueType())
+					assert.Equal(t, float64(1), dp.DoubleValue())
+					attrVal, ok := dp.Attributes().Get("string_attr")
+					assert.True(t, ok)
+					assert.EqualValues(t, "attr-val", attrVal.Str())
+					attrVal, ok = dp.Attributes().Get("boolean_attr")
+					assert.True(t, ok)
+					assert.EqualValues(t, true, attrVal.Bool())
+				}
+			}
+		})
 	}
-	assert.Equal(t, allMetricsCount, len(validatedMetrics))
 }
 
-func TestNoMetrics(t *testing.T) {
-	start := pcommon.Timestamp(1_000_000_000)
-	ts := pcommon.Timestamp(1_000_001_000)
-	observedZapCore, observedLogs := observer.New(zap.WarnLevel)
-	settings := receivertest.NewNopCreateSettings()
-	settings.Logger = zap.New(observedZapCore)
-	mb := NewMetricsBuilder(loadConfig(t, "no_metrics"), settings, WithStartTime(start))
-
-	assert.Equal(t, "[WARNING] `optional.metric` should not be configured: This metric is deprecated and will be removed soon.", observedLogs.All()[0].Message)
-	assert.Equal(t, 1, observedLogs.Len())
-
-	mb.RecordDefaultMetricDataPoint(ts, 1, "attr-val", 1, AttributeEnumAttr(1))
-	mb.RecordDefaultMetricToBeRemovedDataPoint(ts, 1)
-	mb.RecordOptionalMetricDataPoint(ts, 1, "attr-val", true)
-
-	metrics := mb.Emit()
-
-	assert.Equal(t, 0, metrics.ResourceMetrics().Len())
-}
-
-func loadConfig(t *testing.T, name string) MetricsSettings {
+func loadConfig(t *testing.T, name string) MetricsBuilderConfig {
 	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config.yaml"))
 	require.NoError(t, err)
 	sub, err := cm.Sub(name)
 	require.NoError(t, err)
-	cfg := DefaultMetricsSettings()
+	cfg := DefaultMetricsBuilderConfig()
 	require.NoError(t, component.UnmarshalConfig(sub, &cfg))
 	return cfg
 }
