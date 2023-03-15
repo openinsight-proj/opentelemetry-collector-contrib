@@ -127,11 +127,9 @@ func (p *serviceGraphProcessor) Start(_ context.Context, host component.Host) er
 		}
 	}
 
-	// TODO: Consider making this configurable.
-	go p.cacheLoop(time.Minute)
+	go p.cacheLoop(p.config.CacheLoop)
 
-	// TODO: Consider making this configurable.
-	go p.storeExpirationLoop(2 * time.Second)
+	go p.storeExpirationLoop(p.config.StoreExpirationLoop)
 
 	if p.tracesConsumer == nil {
 		p.logger.Info("Started servicegraphconnector")

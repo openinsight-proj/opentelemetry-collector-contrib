@@ -17,7 +17,6 @@ package store // import "github.com/open-telemetry/opentelemetry-collector-contr
 import (
 	"container/list"
 	"errors"
-	semconv "go.opentelemetry.io/collector/semconv/v1.13.0"
 	"sync"
 	"time"
 
@@ -26,8 +25,6 @@ import (
 
 var (
 	ErrTooManyItems = errors.New("too many items")
-	// NeedToFindAttributes the list of attributes need to matches, the higher the front, the higher the priority.
-	NeedToFindAttributes = []string{semconv.AttributeDBName, semconv.AttributeNetSockPeerAddr, semconv.AttributeNetPeerName, semconv.AttributeRPCService, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget}
 )
 
 type Callback func(e *Edge)
@@ -49,15 +46,14 @@ type Store struct {
 	onComplete Callback
 	onExpire   Callback
 
-	ttl                time.Duration
-	maxItems           int
-	virtualNodeEnabled bool
+	ttl      time.Duration
+	maxItems int
 }
 
 // NewStore creates a Store to build service graphs. The store caches edges, each representing a
 // request between two services. Once an edge is complete its metrics can be collected. Edges that
 // have not found their pair are deleted after ttl time.
-func NewStore(ttl time.Duration, maxItems int, onComplete, onExpire Callback, virtualNodeEnabled bool) *Store {
+func NewStore(ttl time.Duration, maxItems int, onComplete, onExpire Callback) *Store {
 	s := &Store{
 		l: list.New(),
 		m: make(map[Key]*list.Element),
@@ -65,9 +61,8 @@ func NewStore(ttl time.Duration, maxItems int, onComplete, onExpire Callback, vi
 		onComplete: onComplete,
 		onExpire:   onExpire,
 
-		ttl:                ttl,
-		maxItems:           maxItems,
-		virtualNodeEnabled: virtualNodeEnabled,
+		ttl:      ttl,
+		maxItems: maxItems,
 	}
 
 	return s
@@ -124,51 +119,8 @@ func (s *Store) Expire() {
 	defer s.mtx.Unlock()
 
 	// Iterates until no more items can be evicted
-	if s.virtualNodeEnabled {
-		for s.trySpeculateEvictHead() {
-			s.tryEvictHead()
-		}
-	} else {
-		for s.tryEvictHead() {
-
-		}
+	for s.tryEvictHead() {
 	}
-}
-
-// speculate virtual node before edge get expired.
-func (s *Store) trySpeculateEvictHead() bool {
-	head := s.l.Front()
-	if head == nil {
-		return false // list is empty
-	}
-	headEdge := head.Value.(*Edge)
-	if !headEdge.isExpired() {
-		return false
-	}
-
-	if len(headEdge.ClientService) == 0 {
-		headEdge.ClientService = "user"
-	}
-
-	if len(headEdge.ServerService) == 0 {
-		headEdge.ServerService = s.getPeerHost(NeedToFindAttributes, headEdge.Peer.RpcAttributes)
-	}
-
-	if headEdge.isComplete() {
-		s.onComplete(headEdge)
-	}
-	return true
-}
-
-func (s *Store) getPeerHost(m []string, peers map[string]string) string {
-	peerStr := "unknown"
-	for _, s := range m {
-		if len(peers[s]) != 0 {
-			peerStr = peers[s]
-			break
-		}
-	}
-	return peerStr
 }
 
 // tryEvictHead checks if the oldest item (head of list) can be evicted and will delete it if so.
