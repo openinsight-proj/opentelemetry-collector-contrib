@@ -43,6 +43,8 @@ type Config struct {
 	CacheLoop time.Duration `mapstructure:"cache_loop"`
 	// CacheLoop is the time to expire old entries from the store periodically.
 	StoreExpirationLoop time.Duration `mapstructure:"store_expiration_loop"`
+	// PeerAttributes the list of attributes need to match, the higher the front, the higher the priority.
+	PeerAttributes []string `mapstructure:"peer_attributes"`
 }
 
 type StoreConfig struct {

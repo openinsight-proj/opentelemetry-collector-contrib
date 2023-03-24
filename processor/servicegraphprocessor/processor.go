@@ -48,8 +48,9 @@ var (
 		2, 4, 6, 8, 10, 50, 100, 200, 400, 800, 1000, 1400, 2000, 5000, 10_000, 15_000,
 	}
 	// PeerAttributes the list of attributes need to match, the higher the front, the higher the priority.
-	// TODO: Consider making this configurable.
-	PeerAttributes = []string{semconv.AttributeDBName, semconv.AttributeNetSockPeerAddr, semconv.AttributeNetPeerName, semconv.AttributeRPCService, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget}
+	defaultPeerAttributes = []string{
+		semconv.AttributeDBName, semconv.AttributeNetSockPeerAddr, semconv.AttributeNetPeerName, semconv.AttributeRPCService, semconv.AttributeHTTPURL, semconv.AttributeHTTPTarget,
+	}
 )
 
 type metricSeries struct {
@@ -89,6 +90,10 @@ func newProcessor(logger *zap.Logger, config component.Config) *serviceGraphProc
 	bounds := defaultLatencyHistogramBucketsMs
 	if pConfig.LatencyHistogramBuckets != nil {
 		bounds = mapDurationsToMillis(pConfig.LatencyHistogramBuckets)
+	}
+
+	if pConfig.PeerAttributes == nil {
+		pConfig.PeerAttributes = defaultPeerAttributes
 	}
 
 	return &serviceGraphProcessor{
@@ -224,7 +229,7 @@ func (p *serviceGraphProcessor) aggregateMetrics(ctx context.Context, td ptrace.
 						p.upsertDimensions(clientKind, e.Dimensions, rAttributes, span.Attributes())
 
 						if virtualNodeFeatureGate.IsEnabled() {
-							p.upsertPeerAttributes(PeerAttributes, e.Peer, span.Attributes())
+							p.upsertPeerAttributes(p.config.PeerAttributes, e.Peer, span.Attributes())
 						}
 
 						// A database request will only have one span, we don't wait for the server
@@ -323,7 +328,7 @@ func (p *serviceGraphProcessor) onExpire(e *store.Edge) {
 		}
 
 		if len(e.ServerService) == 0 {
-			e.ServerService = p.getPeerHost(PeerAttributes, e.Peer)
+			e.ServerService = p.getPeerHost(p.config.PeerAttributes, e.Peer)
 		}
 
 		e.ConnectionType = store.VirtualNode
