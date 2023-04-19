@@ -124,8 +124,8 @@ func (c *client) pushLogDataInBatches(ctx context.Context, ld plog.Logs, headers
 		profilingLocalHeaders[k] = v
 	}
 
-	var bufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression)
-	var profilingBufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression)
+	var bufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression, c.config.MaxEventSize)
+	var profilingBufState = makeBlankBufferState(c.config.MaxContentLengthLogs, !c.config.DisableCompression, c.config.MaxEventSize)
 	var permanentErrors []error
 
 	var rls = ld.ResourceLogs()
@@ -168,7 +168,7 @@ func (c *client) pushLogDataInBatches(ctx context.Context, ld plog.Logs, headers
 	}
 
 	// There's some leftover unsent non-profiling data
-	if bufState.buf.Len() > 0 {
+	if bufState.containsData {
 
 		if err := c.postEvents(ctx, bufState, headers); err != nil {
 			return consumererror.NewLogs(err, c.subLogs(ld, bufState.bufFront, profilingBufState.bufFront))
@@ -176,7 +176,7 @@ func (c *client) pushLogDataInBatches(ctx context.Context, ld plog.Logs, headers
 	}
 
 	// There's some leftover unsent profiling data
-	if profilingBufState.buf.Len() > 0 {
+	if profilingBufState.containsData {
 		if err := c.postEvents(ctx, profilingBufState, profilingLocalHeaders); err != nil {
 			// Non-profiling bufFront is set to nil because all non-profiling data was flushed successfully above.
 			return consumererror.NewLogs(err, c.subLogs(ld, nil, profilingBufState.bufFront))
@@ -222,7 +222,7 @@ func (c *client) pushLogRecords(ctx context.Context, lds plog.ResourceLogsSlice,
 			continue
 		}
 
-		if state.buf.Len() > 0 {
+		if state.containsData {
 			if err := c.postEvents(ctx, state, headers); err != nil {
 				return permanentErrors, err
 			}
@@ -241,7 +241,7 @@ func (c *client) pushLogRecords(ctx context.Context, lds plog.ResourceLogsSlice,
 				fmt.Errorf("dropped log event error: event size %d bytes larger than configured max content length %d bytes", len(b), state.bufferMaxLen)))
 			continue
 		}
-		if state.buf.Len() > 0 {
+		if state.containsData {
 			// This means that the current record had overflown the buffer and was not sent
 			state.bufFront = &index{resource: state.resource, library: state.library, record: k}
 		} else {
@@ -296,7 +296,7 @@ func (c *client) pushMetricsRecords(ctx context.Context, mds pmetric.ResourceMet
 			continue
 		}
 
-		if state.buf.Len() > 0 {
+		if state.containsData {
 			if err := c.postEvents(ctx, state, headers); err != nil {
 				return permanentErrors, err
 			}
@@ -316,7 +316,7 @@ func (c *client) pushMetricsRecords(ctx context.Context, mds pmetric.ResourceMet
 			continue
 		}
 
-		if state.buf.Len() > 0 {
+		if state.containsData {
 			// This means that the current record had overflown the buffer and was not sent
 			state.bufFront = &index{resource: state.resource, library: state.library, record: k}
 		} else {
@@ -358,7 +358,7 @@ func (c *client) pushTracesData(ctx context.Context, tds ptrace.ResourceSpansSli
 			continue
 		}
 
-		if state.buf.Len() > 0 {
+		if state.containsData {
 			if err = c.postEvents(ctx, state, headers); err != nil {
 				return permanentErrors, err
 			}
@@ -378,7 +378,7 @@ func (c *client) pushTracesData(ctx context.Context, tds ptrace.ResourceSpansSli
 			continue
 		}
 
-		if state.buf.Len() > 0 {
+		if state.containsData {
 			// This means that the current record had overflown the buffer and was not sent
 			state.bufFront = &index{resource: state.resource, library: state.library, record: k}
 		} else {
@@ -395,7 +395,7 @@ func (c *client) pushTracesData(ctx context.Context, tds ptrace.ResourceSpansSli
 // The batch content length is restricted to MaxContentLengthMetrics.
 // md metrics are parsed to Splunk events.
 func (c *client) pushMetricsDataInBatches(ctx context.Context, md pmetric.Metrics, headers map[string]string) error {
-	var bufState = makeBlankBufferState(c.config.MaxContentLengthMetrics, !c.config.DisableCompression)
+	var bufState = makeBlankBufferState(c.config.MaxContentLengthMetrics, !c.config.DisableCompression, c.config.MaxEventSize)
 	var permanentErrors []error
 
 	var rms = md.ResourceMetrics()
@@ -417,7 +417,7 @@ func (c *client) pushMetricsDataInBatches(ctx context.Context, md pmetric.Metric
 	}
 
 	// There's some leftover unsent metrics
-	if bufState.buf.Len() > 0 {
+	if bufState.containsData {
 		if err := c.postEvents(ctx, bufState, headers); err != nil {
 			return consumererror.NewMetrics(err, subMetrics(md, bufState.bufFront))
 		}
@@ -430,7 +430,7 @@ func (c *client) pushMetricsDataInBatches(ctx context.Context, md pmetric.Metric
 // The batch content length is restricted to MaxContentLengthMetrics.
 // td traces are parsed to Splunk events.
 func (c *client) pushTracesDataInBatches(ctx context.Context, td ptrace.Traces, headers map[string]string) error {
-	bufState := makeBlankBufferState(c.config.MaxContentLengthTraces, !c.config.DisableCompression)
+	bufState := makeBlankBufferState(c.config.MaxContentLengthTraces, !c.config.DisableCompression, c.config.MaxEventSize)
 	var permanentErrors []error
 
 	var rts = td.ResourceSpans()
@@ -452,7 +452,7 @@ func (c *client) pushTracesDataInBatches(ctx context.Context, td ptrace.Traces, 
 	}
 
 	// There's some leftover unsent traces
-	if bufState.buf.Len() > 0 {
+	if bufState.containsData {
 		if err := c.postEvents(ctx, bufState, headers); err != nil {
 			return consumererror.NewTraces(err, subTraces(td, bufState.bufFront))
 		}
