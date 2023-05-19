@@ -7,6 +7,6 @@ import (
 )
 
 const (
-	Type      = "mongodbreceiver"
-	Stability = component.StabilityLevelBeta
+	Type             = "mongodb"
+	MetricsStability = component.StabilityLevelBeta
 )

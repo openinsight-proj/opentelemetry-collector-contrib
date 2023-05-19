@@ -4,7 +4,7 @@
 | ------------------------ |-----------------------|
 | Stability                | [beta]                |
 | Supported pipeline types | traces, logs, metrics |
-| Distributions            | [contrib]             |
+| Distributions            | [contrib], [observiq] |
 
 The kinesis exporter currently exports dynamic encodings to the configured kinesis stream.
 The exporter relies heavily on the kinesis.PutRecords api to reduce network I/O and and reduces records into smallest atomic representation
@@ -35,7 +35,7 @@ The following settings can be optionally configured:
 - `sending_queue`
   - `enabled` (default = true)
   - `num_consumers` (default = 10): Number of consumers that dequeue batches; ignored if `enabled` is `false`
-  - `queue_size` (default = 5000): Maximum number of batches kept in memory before dropping data; ignored if `enabled` is `false`;
+  - `queue_size` (default = 1000): Maximum number of batches kept in memory before dropping data; ignored if `enabled` is `false`;
   User should calculate this as `num_seconds * requests_per_second` where:
     - `num_seconds` is the number of seconds to buffer in case of a backend outage
     - `requests_per_second` is the average number of requests per seconds.
@@ -53,3 +53,4 @@ exporters:
 
 [beta]:https://github.com/open-telemetry/opentelemetry-collector#beta
 [contrib]:https://github.com/open-telemetry/opentelemetry-collector-releases/tree/main/distributions/otelcol-contrib
+[observiq]: https://github.com/observIQ/observiq-otel-collector

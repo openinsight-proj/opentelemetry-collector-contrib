@@ -1,16 +1,5 @@
 // Copyright The OpenTelemetry Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package main
 
@@ -18,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"go.opentelemetry.io/collector/confmap"
@@ -229,6 +220,8 @@ type metadata struct {
 	Attributes map[attributeName]attribute `mapstructure:"attributes"`
 	// Metrics that can be emitted by the component.
 	Metrics map[metricName]metric `mapstructure:"metrics"`
+	// ScopeName of the metrics emitted by the component.
+	ScopeName string `mapstructure:"-"`
 }
 
 func (md *metadata) Unmarshal(parser *confmap.Conf) error {
@@ -306,7 +299,7 @@ func loadMetadata(filePath string) (metadata, error) {
 		return metadata{}, err
 	}
 
-	md := metadata{}
+	md := metadata{ScopeName: scopeName(filePath)}
 	if err := conf.Unmarshal(&md, confmap.WithErrorUnused()); err != nil {
 		return md, err
 	}
@@ -316,4 +309,18 @@ func loadMetadata(filePath string) (metadata, error) {
 	}
 
 	return md, nil
+}
+
+func scopeName(filePath string) string {
+	sn := "otelcol"
+	dirs := strings.Split(filepath.Dir(filePath), string(os.PathSeparator))
+	for _, dir := range dirs {
+		if dir != "receiver" && strings.HasSuffix(dir, "receiver") {
+			sn += "/" + dir
+		}
+		if dir != "scraper" && strings.HasSuffix(dir, "scraper") {
+			sn += "/" + strings.TrimSuffix(dir, "scraper")
+		}
+	}
+	return sn
 }
