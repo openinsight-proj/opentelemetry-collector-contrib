@@ -1700,6 +1700,7 @@
 - `telemetryquerylanguage`: Add the Int factory function. (#11810)
 - `telemetryquerylanguage`: Add split factory function to separate a string by the delimiter, and returns an array of substrings. (#11790)
 - `processor/transform`: Add `Concat`, which allows concatenating an arbitrary number of strings with a delimiter (#12476)
+- `loadbalancingexporter`: Added kubernetes service resolver in loadbalancingexporter. (#22776)
 
 ### 🧰 Bug fixes 🧰
 

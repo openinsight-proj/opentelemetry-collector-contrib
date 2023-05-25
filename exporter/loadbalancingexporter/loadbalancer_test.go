@@ -63,6 +63,24 @@ func TestNewLoadBalancerInvalidDNSResolver(t *testing.T) {
 	require.Equal(t, errNoHostname, err)
 }
 
+func TestNewLoadBalancerInvalidK8sResolver(t *testing.T) {
+	// prepare
+	cfg := &Config{
+		Resolver: ResolverSettings{
+			K8sSvc: &K8sSvcResolver{
+				Service: "",
+			},
+		},
+	}
+
+	// test
+	p, err := newLoadBalancer(exportertest.NewNopCreateSettings(), cfg, nil)
+
+	// verify
+	assert.Nil(t, p)
+	assert.Equal(t, errNoSvc, err)
+}
+
 func TestLoadBalancerStart(t *testing.T) {
 	// prepare
 	cfg := simpleConfig()
