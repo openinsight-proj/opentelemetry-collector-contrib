@@ -186,7 +186,7 @@ func (exp *metricsExporter) PushMetricsData(ctx context.Context, md pmetric.Metr
 	} else {
 		consumer = metrics.NewZorkianConsumer()
 	}
-	err := exp.tr.MapMetrics(ctx, md, consumer)
+	_, err := exp.tr.MapMetrics(ctx, md, consumer)
 	if err != nil {
 		return fmt.Errorf("failed to map metrics: %w", err)
 	}
@@ -205,6 +205,7 @@ func (exp *metricsExporter) PushMetricsData(ctx context.Context, md pmetric.Metr
 		var ms []datadogV2.MetricSeries
 		ms, sl, sp = consumer.(*metrics.Consumer).All(exp.getPushTime(), exp.params.BuildInfo, tags)
 		ms = metrics.PrepareSystemMetrics(ms)
+		ms = metrics.PrepareContainerMetrics(ms)
 
 		err = nil
 		if len(ms) > 0 {
@@ -220,6 +221,7 @@ func (exp *metricsExporter) PushMetricsData(ctx context.Context, md pmetric.Metr
 		var ms []zorkian.Metric
 		ms, sl, sp = consumer.(*metrics.ZorkianConsumer).All(exp.getPushTime(), exp.params.BuildInfo, tags)
 		ms = metrics.PrepareZorkianSystemMetrics(ms)
+		ms = metrics.PrepareZorkianContainerMetrics(ms)
 
 		err = nil
 		if len(ms) > 0 {

@@ -122,7 +122,7 @@ func (r *statsdReceiver) Start(ctx context.Context, host component.Host) error {
 
 // Shutdown stops the StatsD receiver.
 func (r *statsdReceiver) Shutdown(context.Context) error {
-	if r.cancel == nil {
+	if r.cancel == nil || r.server == nil {
 		return nil
 	}
 	err := r.server.Close()
@@ -131,10 +131,5 @@ func (r *statsdReceiver) Shutdown(context.Context) error {
 }
 
 func (r *statsdReceiver) Flush(ctx context.Context, metrics pmetric.Metrics, nextConsumer consumer.Metrics) error {
-	error := nextConsumer.ConsumeMetrics(ctx, metrics)
-	if error != nil {
-		return error
-	}
-
-	return nil
+	return nextConsumer.ConsumeMetrics(ctx, metrics)
 }
