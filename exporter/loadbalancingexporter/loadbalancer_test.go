@@ -373,3 +373,21 @@ func TestFailedExporterInRing(t *testing.T) {
 func newNopMockExporter() component.Component {
 	return mockComponent{}
 }
+
+func TestNewLoadBalancerInvalidK8sResolver(t *testing.T) {
+	// prepare
+	cfg := &Config{
+		Resolver: ResolverSettings{
+			K8sSvc: &K8sSvcResolver{
+				Service: "",
+			},
+		},
+	}
+
+	// test
+	p, err := newLoadBalancer(exportertest.NewNopCreateSettings(), cfg, nil)
+
+	// verify
+	assert.Nil(t, p)
+	assert.Equal(t, errNoSvc, err)
+}
