@@ -147,6 +147,7 @@ func (r *k8sResolver) shutdown(ctx context.Context) error {
 	r.shutdownWg.Wait()
 	return nil
 }
+
 func newInClusterClient() (kubernetes.Interface, error) {
 	cfg, err := config.GetConfig()
 	if err != nil {
