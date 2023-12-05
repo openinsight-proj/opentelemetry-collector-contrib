@@ -82,7 +82,7 @@ func createLogsExporter(
 
 	logsExporter, err := newLogsExporter(set.Logger, cf)
 	if err != nil {
-		return nil, fmt.Errorf("cannot configure Elasticsearch logs logsExporter: %w", err)
+		return nil, fmt.Errorf("cannot configure Elasticsearch logsExporter: %w", err)
 	}
 
 	return exporterhelper.NewLogsExporter(
@@ -102,7 +102,7 @@ func createTracesExporter(ctx context.Context,
 	cf := cfg.(*Config)
 	tracesExporter, err := newTracesExporter(set.Logger, cf)
 	if err != nil {
-		return nil, fmt.Errorf("cannot configure Elasticsearch traces tracesExporter: %w", err)
+		return nil, fmt.Errorf("cannot configure Elasticsearch tracesExporter: %w", err)
 	}
 	return exporterhelper.NewTracesExporter(
 		ctx,
