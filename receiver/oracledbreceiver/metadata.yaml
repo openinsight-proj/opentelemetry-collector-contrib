@@ -1,10 +1,11 @@
 type: oracledb
+scope_name: otelcol/oracledbreceiver
 
 status:
   class: receiver
   stability:
     alpha: [metrics]
-  distributions: [contrib, splunk]
+  distributions: [contrib]
   codeowners:
     active: [dmitryax, crobert-1, atoulme]
 
@@ -252,6 +253,3 @@ metrics:
       value_type: int
       input_type: string
     unit: "{gets}"
-
-tests:
-  config:

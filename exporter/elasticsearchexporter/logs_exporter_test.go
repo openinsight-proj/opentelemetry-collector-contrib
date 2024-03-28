@@ -122,7 +122,7 @@ func TestExporter_New(t *testing.T) {
 				cfg.Mapping.Dedot = false
 				cfg.Mapping.Dedup = true
 			}),
-			want: successWithInternalModel(&encodeModel{dedot: false, dedup: true}),
+			want: successWithInternalModel(&encodeModel{dedot: false, dedup: true, mode: MappingECS}),
 		},
 	}
 
@@ -357,7 +357,7 @@ func TestExporter_PushEvent(t *testing.T) {
 
 	t.Run("do not retry invalid request", func(t *testing.T) {
 		attempts := &atomic.Int64{}
-		server := newESTestServer(t, func(docs []itemRequest) ([]itemResponse, error) {
+		server := newESTestServer(t, func(_ []itemRequest) ([]itemResponse, error) {
 			attempts.Add(1)
 			return nil, &httpTestError{message: "oops", status: http.StatusBadRequest}
 		})
