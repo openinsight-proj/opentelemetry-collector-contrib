@@ -1,4 +1,4 @@
-FROM alpine:latest as prep
+FROM alpine:3.19 as prep
 RUN apk --update add ca-certificates
 
 RUN mkdir -p /tmp
@@ -10,7 +10,8 @@ ARG TARGETOS
 ARG TARGETARCH
 COPY ./cmd/otelcontribcol_${TARGETOS}_${TARGETARCH} /otelcol-contrib
 
-FROM scratch
+#FROM scratch
+FROM alpine:3.19
 
 ARG USER_UID=10001
 USER ${USER_UID}
