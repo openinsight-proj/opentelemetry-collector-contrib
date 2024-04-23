@@ -5,6 +5,8 @@ components:
     connector:
         - count
         - datadog
+        - exceptions
+        - failover
         - grafanacloud
         - routing
         - servicegraph
@@ -24,7 +26,6 @@ components:
         - coralogix
         - datadog
         - dataset
-        - dynatrace
         - elasticsearch
         - file
         - googlecloud
