@@ -72,6 +72,7 @@ import (
 	sumologicexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/sumologicexporter"
 	syslogexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter"
 	tencentcloudlogserviceexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter"
+	veopscmdbexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter"
 	zipkinexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter"
 	ackextension "github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension"
 	asapauthextension "github.com/open-telemetry/opentelemetry-collector-contrib/extension/asapauthextension"
@@ -399,6 +400,7 @@ func components() (otelcol.Factories, error) {
 		syslogexporter.NewFactory(),
 		tencentcloudlogserviceexporter.NewFactory(),
 		zipkinexporter.NewFactory(),
+		veopscmdbexporter.NewFactory(),
 	)
 	if err != nil {
 		return otelcol.Factories{}, err

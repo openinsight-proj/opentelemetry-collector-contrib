@@ -1227,4 +1227,6 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/acke
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/splunkenterprisereceiver => ./receiver/splunkenterprisereceiver
 
+replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter => ./exporter/veopscmdbexporter
+
 replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling => ./pkg/sampling
