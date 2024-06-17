@@ -4,7 +4,7 @@ module github.com/open-telemetry/opentelemetry-collector-contrib/cmd/otelcontrib
 
 go 1.21.0
 
-toolchain go1.21.11
+toolchain go1.22.2
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/s3provider v0.102.0
@@ -60,6 +60,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/sumologicexporter v0.102.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter v0.102.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter v0.102.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter v0.102.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter v0.102.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.102.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/asapauthextension v0.102.0
@@ -708,7 +709,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.936 // indirect
 	github.com/tg123/go-htpasswd v1.2.2 // indirect
-	github.com/tidwall/gjson v1.14.2 // indirect
+	github.com/tidwall/gjson v1.17.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/tinylru v1.1.0 // indirect
@@ -1224,6 +1225,8 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/remo
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/sumologicprocessor => ../../processor/sumologicprocessor
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter => ../../exporter/syslogexporter
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter => ../../exporter/veopscmdbexporter
 
 replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 
