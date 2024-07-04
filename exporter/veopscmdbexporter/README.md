@@ -17,7 +17,7 @@ The following configuration options are supported:
 
 * `api_key` (Required): This is the API key for your CMDB account.
 * `api_secret` (Required): This is the API secret for your CMDB account.
-* `api_url` (Optional): This sets the hostname to send marker data to. If not set, will default to `http://localhost:5000/api/v0.1/ci`
+* `api_address` (Optional): This sets the hostname to send data to. If not set, will default to `http://localhost:5000`
 * `ci_matches` (Required): This is a list of configurations to create an CI. 
   * `resouce_name`: (Required): Specifies the kubernetes resoruce type name(following `k8sobjectsreceiver`).
   * `ci_type` (Required): Specifies the marker type.
@@ -25,9 +25,8 @@ Example:
 ```yaml
 exporters:
   veopscmdbexporter:
+    api_address: "http://localhost:5000"
     api_key: "test-apikey"
     api_secret: "test-apisecret"
-    ci_matches:
-      - resource_name: namespaces
-        ci_type: "1"
+    kubernetes_cluster_ci_type: 58
 ```
