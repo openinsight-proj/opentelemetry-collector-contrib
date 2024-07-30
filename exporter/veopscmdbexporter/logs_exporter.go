@@ -38,7 +38,7 @@ type cmdbLogsExporter struct {
 	clusterType        int64
 }
 
-func newVeopsCMDBExporter(set exporter.CreateSettings, config *Config) (*cmdbLogsExporter, error) {
+func newVeopsCMDBExporter(set exporter.Settings, config *Config) (*cmdbLogsExporter, error) {
 	if config == nil {
 		return nil, fmt.Errorf("unable to create VeopsCMDBExporter without config")
 	}

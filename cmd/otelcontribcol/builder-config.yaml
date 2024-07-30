@@ -102,7 +102,7 @@ exporters:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter v0.106.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter v0.106.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter v0.106.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter v0.104.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter v0.106.0
 
 processors:
   - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.106.0
