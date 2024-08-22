@@ -106,12 +106,9 @@ func NewResourceProvider(logger *zap.Logger, timeout time.Duration, attributesTo
 }
 
 func (p *ResourceProvider) Get(ctx context.Context, client *http.Client) (resource pcommon.Resource, schemaURL string, err error) {
-	p.once.Do(func() {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, client.Timeout)
-		defer cancel()
-		p.detectResource(ctx)
-	})
+	ctx, cancel := context.WithTimeout(ctx, client.Timeout)
+	defer cancel()
+	p.detectResource(ctx)
 
 	return p.detectedResource.resource, p.detectedResource.schemaURL, p.detectedResource.err
 }

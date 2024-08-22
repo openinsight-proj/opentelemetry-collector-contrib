@@ -1,0 +1,8 @@
+type: resourcedetectionprocessor/http
+
+parent: resourcedetection
+
+status:
+  class: pkg
+  codeowners:
+    active: [JaredTan95]

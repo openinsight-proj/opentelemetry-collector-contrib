@@ -1,0 +1,62 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+  otlp/jaeger:
+    endpoint: localhost:14317
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 500s
+    sending_queue:
+      enabled: true
+
+processors:
+  batch:
+  resourcedetection/sgm:
+    detectors: [env,http]
+    timeout: 2s
+    override: false
+    detect_interval: 10s
+    http:
+      api_url: https://apifoxmock.com/m1/3552517-2307922-default/mock/auto-tagging
+  resourcedetection/system:
+    detectors: [env, system]
+    timeout: 2s
+    override: false
+    system:
+      resource_attributes:
+        host.name:
+          enabled: true
+        host.id:
+          enabled: true
+        os.type:
+          enabled: true
+    attributes: ["a", "b"]
+
+extensions:
+  health_check:
+  pprof:
+    endpoint: :1888
+  zpages:
+    endpoint: :55679
+
+service:
+  extensions: [pprof, zpages, health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch,resourcedetection/sgm]
+      exporters: [debug,otlp/jaeger]
+    metrics:
+      receivers: [otlp]
+      processors: [batch,resourcedetection/sgm]
+      exporters: [debug]

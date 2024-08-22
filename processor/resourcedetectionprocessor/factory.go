@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor/internal/http"
+
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/consumer"
@@ -63,6 +65,7 @@ func NewFactory() processor.Factory {
 		system.TypeStr:           system.NewDetector,
 		openshift.TypeStr:        openshift.NewDetector,
 		k8snode.TypeStr:          k8snode.NewDetector,
+		http.TypeStr:             http.NewDetector,
 	})
 
 	f := &factory{
@@ -90,6 +93,7 @@ func createDefaultConfig() component.Config {
 		Override:       true,
 		Attributes:     nil,
 		DetectorConfig: detectorCreateDefaultConfig(),
+		DetectInterval: time.Minute * 10,
 		// TODO: Once issue(https://github.com/open-telemetry/opentelemetry-collector/issues/4001) gets resolved,
 		//		 Set the default value of 'hostname_source' here instead of 'system' detector
 	}
@@ -182,6 +186,7 @@ func (f *factory) getResourceDetectionProcessor(
 		override:           oCfg.Override,
 		httpClientSettings: oCfg.ClientConfig,
 		telemetrySettings:  params.TelemetrySettings,
+		detectInterval:     oCfg.DetectInterval,
 	}, nil
 }
 
