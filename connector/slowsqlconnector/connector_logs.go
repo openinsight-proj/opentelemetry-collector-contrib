@@ -117,10 +117,11 @@ func (c *logsConnector) attrToLogRecord(sl plog.ScopeLogs, serviceName string, s
 	spanAttrs.CopyTo(logRecord.Attributes())
 
 	// Add common attributes to the log record.
+	logRecord.Attributes().PutStr(spanNameKey, span.Name())
 	logRecord.Attributes().PutStr(spanKindKey, traceutil.SpanKindStr(span.Kind()))
 	logRecord.Attributes().PutStr(statusCodeKey, traceutil.StatusCodeStr(span.Status().Code()))
 	logRecord.Attributes().PutStr(serviceNameKey, serviceName)
-	logRecord.Attributes().PutStr(dbStatementKey, serviceName)
+	logRecord.Attributes().PutStr(dbStatementKey, getValue(spanAttrs, dbStatementKey))
 	logRecord.Attributes().PutDouble(statementExecDuration, spanDuration(span)) // seconds
 
 	// Add configured dimension attributes to the log record.
