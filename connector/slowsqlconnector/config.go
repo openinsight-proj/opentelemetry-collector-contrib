@@ -23,6 +23,8 @@ type Exemplars struct {
 type Config struct {
 	// Threshold of slow sql. unit is seconds, default 1s.
 	Threshold float64 `mapstructure:"threshold"`
+	// Filter specific db systems, default "h2", "mongodb", "mssql", "mysql", "oracle", "progress", "postgresql", "mariadb", ref: https://opentelemetry.io/docs/specs/semconv/attributes-registry/db/
+	DBSystem []string `mapstructure:"db_system"`
 	// Dimensions defines the list of additional dimensions on top of the provided:
 	// - service.name
 	// - span.name

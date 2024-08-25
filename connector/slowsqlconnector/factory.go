@@ -27,6 +27,7 @@ func NewFactory() connector.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		Threshold:  1,
+		DBSystem:   []string{"h2", "mongodb", "mssql", "mysql", "oracle", "progress", "postgresql", "mariadb"},
 		Dimensions: []Dimension{},
 	}
 }

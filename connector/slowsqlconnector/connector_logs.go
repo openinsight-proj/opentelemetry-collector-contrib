@@ -71,8 +71,10 @@ func (c *logsConnector) ConsumeTraces(ctx context.Context, traces ptrace.Traces)
 				case ptrace.SpanKindClient:
 					// through db.Statement exists represents db client
 					if _, dbSystem := findAttributeValue(dbSystemKey, span.Attributes()); dbSystem {
-						if spanDuration(span) >= c.config.Threshold {
-							c.attrToLogRecord(sl, serviceName, span, resourceAttr)
+						for _, db := range c.config.DBSystem {
+							if db == getValue(span.Attributes(), dbSystemKey) && spanDuration(span) >= c.config.Threshold {
+								c.attrToLogRecord(sl, serviceName, span, resourceAttr)
+							}
 						}
 					}
 				}
