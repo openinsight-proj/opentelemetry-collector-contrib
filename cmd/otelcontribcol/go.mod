@@ -18,6 +18,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.107.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.107.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.107.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector v0.107.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.107.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alertmanagerexporter v0.107.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter v0.107.0
@@ -1344,3 +1345,5 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otela
 replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/cfgardenobserver => ../../extension/observer/cfgardenobserver
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/rabbitmqexporter => ../../exporter/rabbitmqexporter
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector => ../../connector/slowsqlconnector
