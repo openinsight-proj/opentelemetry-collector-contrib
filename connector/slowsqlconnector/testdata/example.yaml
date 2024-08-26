@@ -1,0 +1,21 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  debug:
+    verbosity: detailed
+
+connectors:
+  slowsql:
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [slowsql]
+    logs:
+      receivers: [slowsql]
+      exporters: [debug]

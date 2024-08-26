@@ -232,6 +232,7 @@ connectors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.107.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.107.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.107.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector v0.107.0
 
 providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v0.107.0
@@ -493,3 +494,4 @@ replaces:
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver => ../../receiver/otelarrowreceiver
   - github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/cfgardenobserver => ../../extension/observer/cfgardenobserver
   - github.com/open-telemetry/opentelemetry-collector-contrib/exporter/rabbitmqexporter => ../../exporter/rabbitmqexporter
+  - github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector => ../../connector/slowsqlconnector

@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Type = component.MustNewType("veopscmdbexporter")
+	Type      = component.MustNewType("veopscmdbexporter")
+	ScopeName = "otelcol/veopscmdbexporter"
 )
 
 const (

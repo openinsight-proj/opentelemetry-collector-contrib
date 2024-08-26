@@ -31,6 +31,7 @@ import (
 	roundrobinconnector "github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector"
 	routingconnector "github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector"
 	servicegraphconnector "github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector"
+	slowsqlconnector "github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector"
 	spanmetricsconnector "github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector"
 	alertmanagerexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alertmanagerexporter"
 	alibabacloudlogserviceexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter"
@@ -591,6 +592,7 @@ func components() (otelcol.Factories, error) {
 	factories.ExporterModules[syslogexporter.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter v0.107.0"
 	factories.ExporterModules[tencentcloudlogserviceexporter.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter v0.107.0"
 	factories.ExporterModules[zipkinexporter.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter v0.107.0"
+	factories.ExporterModules[veopscmdbexporter.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter v0.107.0"
 
 	factories.Processors, err = processor.MakeFactoryMap(
 		batchprocessor.NewFactory(),
@@ -655,6 +657,7 @@ func components() (otelcol.Factories, error) {
 		routingconnector.NewFactory(),
 		servicegraphconnector.NewFactory(),
 		spanmetricsconnector.NewFactory(),
+		slowsqlconnector.NewFactory(),
 	)
 	if err != nil {
 		return otelcol.Factories{}, err
@@ -671,6 +674,7 @@ func components() (otelcol.Factories, error) {
 	factories.ConnectorModules[routingconnector.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.107.0"
 	factories.ConnectorModules[servicegraphconnector.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.107.0"
 	factories.ConnectorModules[spanmetricsconnector.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.107.0"
+	factories.ConnectorModules[slowsqlconnector.NewFactory().Type()] = "github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector v0.107.0"
 
 	return factories, nil
 }
