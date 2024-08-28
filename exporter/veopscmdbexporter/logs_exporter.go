@@ -6,8 +6,9 @@ package veopscmdbexporter // import "github.com/open-telemetry/opentelemetry-col
 import (
 	"context"
 	"fmt"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/expr"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
+	"net/http"
+	"runtime"
+
 	"github.com/tidwall/gjson"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
@@ -15,8 +16,9 @@ import (
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
-	"net/http"
-	"runtime"
+
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/expr"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
 )
 
 type marker struct {
