@@ -28,11 +28,10 @@ func TestLoadConfig(t *testing.T) {
 		{
 			id: component.NewIDWithName(metadata.Type, ""),
 			expected: &Config{
-				APIKey:     "test-apikey",
-				APIAddress: "http://localhost:5000",
-				CIMatches: map[string]string{
-					"namespaces": "1",
-				},
+				APIKey:                  "test-apikey",
+				APIAddress:              "http://localhost:5000",
+				APISecret:               "test-apisecret",
+				KubernetesClusterCIType: 58,
 			},
 		},
 	}
@@ -44,7 +43,7 @@ func TestLoadConfig(t *testing.T) {
 
 			sub, err := cm.Sub(tt.id.String())
 			require.NoError(t, err)
-			require.NoError(t, component.UnmarshalConfig(sub, cfg))
+			require.NoError(t, sub.Unmarshal(cfg))
 
 			if tt.expected == nil {
 				err = component.ValidateConfig(cfg)
