@@ -212,6 +212,8 @@ func TestLogsExporter(t *testing.T) {
 			},
 		},
 	}
+	featuregateErr := featuregate.GlobalRegistry().Set("exporter.datadogexporter.UseLogsAgentExporter", false)
+	assert.NoError(t, featuregateErr)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := testutil.DatadogLogServerMock()
@@ -238,6 +240,8 @@ func TestLogsExporter(t *testing.T) {
 			assert.Equal(t, tt.want, server.LogsData)
 		})
 	}
+	featuregateErr = featuregate.GlobalRegistry().Set("exporter.datadogexporter.UseLogsAgentExporter", true)
+	assert.NoError(t, featuregateErr)
 }
 
 func TestLogsAgentExporter(t *testing.T) {
@@ -291,6 +295,7 @@ func TestLogsAgentExporter(t *testing.T) {
 					ldd := lrr.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 					ldd.Attributes().PutStr("attr", "hello")
 					ldd.Attributes().PutStr("service.name", "service")
+					ldd.Attributes().PutStr("host.name", "test-host")
 					return lrr
 				}(),
 				retry: false,
@@ -314,6 +319,8 @@ func TestLogsAgentExporter(t *testing.T) {
 						"attr":                 "hello",
 						"service":              "service",
 						"service.name":         "service",
+						"host.name":            "test-host",
+						"hostname":             "test-host",
 					},
 					"ddsource": "otlp_log_ingestion",
 					"ddtags":   "otel_source:datadog_exporter",
@@ -497,8 +504,6 @@ func TestLogsAgentExporter(t *testing.T) {
 			},
 		},
 	}
-	err := featuregate.GlobalRegistry().Set("exporter.datadogexporter.UseLogsAgentExporter", true)
-	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doneChannel := make(chan bool)
