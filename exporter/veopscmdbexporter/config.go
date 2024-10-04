@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/config/configretry"
+
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -25,9 +26,9 @@ type Config struct {
 	// CIMatches is the list of CIs to create
 	KubernetesClusterCIType int64 `mapstructure:"kubernetes_cluster_ci_type"`
 
-	confighttp.ClientConfig      `mapstructure:",squash"`
-	exporterhelper.QueueSettings `mapstructure:"sending_queue"`
-	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
+	confighttp.ClientConfig   `mapstructure:",squash"`
+	QueueSettings             exporterhelper.QueueConfig `mapstructure:"sending_queue"`
+	configretry.BackOffConfig `mapstructure:"retry_on_failure"`
 }
 
 var _ component.Config = (*Config)(nil)
