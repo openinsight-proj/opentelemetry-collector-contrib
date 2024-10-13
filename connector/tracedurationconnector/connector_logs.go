@@ -82,9 +82,9 @@ func newLogsConnector(set connector.Settings, config component.Config) *logsConn
 // Start is invoked during service startup.
 func (c *logsConnector) Start(_ context.Context, _ component.Host) error {
 	// start these metrics, as it might take a while for them to receive their first event
-	c.telemetryBuilder.ProcessorGroupbytraceTracesEvicted.Add(context.Background(), 0)
-	c.telemetryBuilder.ProcessorGroupbytraceIncompleteReleases.Add(context.Background(), 0)
-	c.telemetryBuilder.ProcessorGroupbytraceConfNumTraces.Record(context.Background(), int64(c.config.NumTraces))
+	c.telemetryBuilder.ConnectorGroupbytraceTracesEvicted.Add(context.Background(), 0)
+	c.telemetryBuilder.ConnectorGroupbytraceIncompleteReleases.Add(context.Background(), 0)
+	c.telemetryBuilder.ConnectorGroupbytraceConfNumTraces.Record(context.Background(), int64(c.config.NumTraces))
 	c.eventMachine.startInBackground()
 	return c.st.start()
 }
@@ -249,7 +249,7 @@ func (c *logsConnector) onTraceReceived(trace tracesWithID, worker *eventMachine
 			c.logger.Error("failed to export traces", zap.Error(err), zap.Stringer("traceID", evicted))
 		}
 
-		c.telemetryBuilder.ProcessorGroupbytraceTracesEvicted.Add(context.Background(), 1)
+		c.telemetryBuilder.ConnectorGroupbytraceTracesEvicted.Add(context.Background(), 1)
 
 		c.logger.Info("trace evicted: in order to avoid this in the future, adjust the wait duration and/or number of traces to keep in memory",
 			zap.Stringer("traceID", evicted))
@@ -279,7 +279,7 @@ func (c *logsConnector) onTraceExpired(traceID pcommon.TraceID, worker *eventMac
 		// we likely received multiple batches with spans for the same trace
 		// and released this trace already
 		c.logger.Debug("skipping the processing of expired trace", zap.Stringer("traceID", traceID))
-		c.telemetryBuilder.ProcessorGroupbytraceIncompleteReleases.Add(context.Background(), 1)
+		c.telemetryBuilder.ConnectorGroupbytraceIncompleteReleases.Add(context.Background(), 1)
 		return nil
 	}
 
@@ -328,8 +328,8 @@ func (c *logsConnector) onTraceReleased(rss []ptrace.ResourceSpans) error {
 		rs.CopyTo(trs)
 	}
 
-	c.telemetryBuilder.ProcessorGroupbytraceSpansReleased.Add(context.Background(), int64(trace.SpanCount()))
-	c.telemetryBuilder.ProcessorGroupbytraceTracesReleased.Add(context.Background(), 1)
+	c.telemetryBuilder.ConnectorGroupbytraceSpansReleased.Add(context.Background(), int64(trace.SpanCount()))
+	c.telemetryBuilder.ConnectorGroupbytraceTracesReleased.Add(context.Background(), 1)
 
 	err := c.exportTracesAsLogs(context.Background(), rss)
 	if err != nil {

@@ -91,7 +91,7 @@ func (st *memoryStorage) shutdown() error {
 
 func (st *memoryStorage) periodicMetrics() {
 	numTraces := st.count()
-	st.telemetry.ProcessorGroupbytraceNumTracesInMemory.Record(context.Background(), int64(numTraces))
+	st.telemetry.ConnectorGroupbytraceNumTracesInMemory.Record(context.Background(), int64(numTraces))
 
 	st.stoppedLock.RLock()
 	stopped := st.stopped

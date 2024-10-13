@@ -120,7 +120,7 @@ func (em *eventMachine) numEvents() int {
 func (em *eventMachine) periodicMetrics() {
 	numEvents := em.numEvents()
 	em.logger.Debug("recording current state of the queue", zap.Int("num-events", numEvents))
-	em.telemetry.ProcessorGroupbytraceNumEventsInQueue.Record(context.Background(), int64(numEvents))
+	em.telemetry.ConnectorGroupbytraceNumEventsInQueue.Record(context.Background(), int64(numEvents))
 
 	em.shutdownLock.RLock()
 	closed := em.closed
@@ -289,7 +289,7 @@ func (em *eventMachine) handleEventWithObservability(event string, do func() err
 	start := time.Now()
 	succeeded, err := doWithTimeout(time.Second, do)
 	duration := time.Since(start)
-	em.telemetry.ProcessorGroupbytraceEventLatency.Record(context.Background(), duration.Milliseconds(), metric.WithAttributeSet(attribute.NewSet(attribute.String("event", event))))
+	em.telemetry.ConnectorGroupbytraceEventLatency.Record(context.Background(), duration.Milliseconds(), metric.WithAttributeSet(attribute.NewSet(attribute.String("event", event))))
 
 	if err != nil {
 		em.logger.Error("failed to process event", zap.Error(err), zap.String("event", event))
