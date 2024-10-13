@@ -50,6 +50,7 @@ exporters:
 
 processors:
   batch:
+  # dropping spans
   filter/ottl:
     error_mode: ignore
     traces:

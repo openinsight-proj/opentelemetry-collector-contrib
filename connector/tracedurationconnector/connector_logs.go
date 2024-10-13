@@ -117,6 +117,7 @@ func (c *logsConnector) exportTracesAsLogs(ctx context.Context, resourceSpans []
 	var traceId pcommon.TraceID
 	var spanId pcommon.SpanID
 	var stmp pcommon.Timestamp
+	// TODO: what the relation of resource after group
 	for i := 0; i < len(resourceSpans); i++ {
 		rspans := resourceSpans[i]
 		resourceAttr := rspans.Resource().Attributes()
@@ -142,6 +143,7 @@ func (c *logsConnector) exportTracesAsLogs(ctx context.Context, resourceSpans []
 					traceId = span.TraceID()
 					spanId = span.SpanID()
 					spanName = span.Name()
+					// get root span's start time as trace start time
 					stmp = span.StartTimestamp()
 				} else {
 					if minSpanStartTime == 0 || starTime < minSpanStartTime {
