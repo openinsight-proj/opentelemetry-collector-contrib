@@ -73,6 +73,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.ACTIONS_TOKEN }}
+      - uses: actions/checkout@v4
+      - run: make genotelcontribcol
       - name: Build otel col contrib amd64
         run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_linux_amd64 ./cmd/otelcontribcol_linux_amd64
       - name: Build otel col contrib arm64
