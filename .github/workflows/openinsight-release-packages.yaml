@@ -44,19 +44,20 @@ jobs:
     env:
       TAG: ${{ github.sha }}
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.21.8"
+          go-version: "1.22.8"
           cache: false
       - name: Cache Go
         id: go-cache
-        uses: actions/cache@v3
+        timeout-minutes: 5
+        uses: actions/cache@v4
         with:
           path: |
             ~/go/bin
             ~/go/pkg/mod
+            ./.tools
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
       # refs: https://github.com/FuelLabs/fuel.nix/pull/121
       - uses: jlumbroso/free-disk-space@main
@@ -72,6 +73,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.ACTIONS_TOKEN }}
+      - uses: actions/checkout@v4
+      - run: make genotelcontribcol
       - name: Build otel col contrib amd64
         run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_linux_amd64 ./cmd/otelcontribcol_linux_amd64
       - name: Build otel col contrib arm64
