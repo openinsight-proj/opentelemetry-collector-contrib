@@ -233,6 +233,7 @@ connectors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.111.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.111.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector v0.111.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/tracedurationconnector v0.111.0
 
 providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.17.0
@@ -454,8 +455,6 @@ replaces:
   - github.com/open-telemetry/opentelemetry-collector-contrib/processor/sumologicprocessor => ../../processor/sumologicprocessor
   - github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter => ../../exporter/syslogexporter
   - github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter => ../../exporter/veopscmdbexporter
-  # see https://github.com/mattn/go-ieproxy/issues/45
-  - github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
   - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest => ../../pkg/pdatatest
   - github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil => ../../pkg/pdatautil
   - github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector => ../../connector/countconnector
@@ -502,4 +501,5 @@ replaces:
   - github.com/open-telemetry/opentelemetry-collector-contrib/internal/grpcutil => ../../internal/grpcutil
   - github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudmonitoringreceiver => ../../receiver/googlecloudmonitoringreceiver
   - github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector => ../../connector/slowsqlconnector
+  - github.com/open-telemetry/opentelemetry-collector-contrib/connector/tracedurationconnector => ../../connector/tracedurationconnector
 
