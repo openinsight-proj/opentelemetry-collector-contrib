@@ -109,13 +109,14 @@ func TestLoadConfig(t *testing.T) {
 					component.MustNewIDWithName("mock_observer", "with_name"),
 				},
 				ResourceAttributes: map[observer.EndpointType]map[string]string{
-					observer.ContainerType:  {"container.key": "container.value"},
-					observer.PodType:        {"pod.key": "pod.value"},
-					observer.PortType:       {"port.key": "port.value"},
-					observer.HostPortType:   {"hostport.key": "hostport.value"},
-					observer.K8sServiceType: {"k8s.service.key": "k8s.service.value"},
-					observer.K8sIngressType: {"k8s.ingress.key": "k8s.ingress.value"},
-					observer.K8sNodeType:    {"k8s.node.key": "k8s.node.value"},
+					observer.ContainerType:    {"container.key": "container.value"},
+					observer.PodType:          {"pod.key": "pod.value"},
+					observer.PodContainerType: {"pod.container.key": "pod.container.value"},
+					observer.PortType:         {"port.key": "port.value"},
+					observer.HostPortType:     {"hostport.key": "hostport.value"},
+					observer.K8sServiceType:   {"k8s.service.key": "k8s.service.value"},
+					observer.K8sIngressType:   {"k8s.ingress.key": "k8s.ingress.value"},
+					observer.K8sNodeType:      {"k8s.node.key": "k8s.node.value"},
 				},
 			},
 		},
@@ -199,7 +200,8 @@ func (*nopWithEndpointFactory) CreateLogs(
 	_ context.Context,
 	rcs rcvr.Settings,
 	cfg component.Config,
-	nextConsumer consumer.Logs) (rcvr.Logs, error) {
+	nextConsumer consumer.Logs,
+) (rcvr.Logs, error) {
 	return &nopWithEndpointReceiver{
 		Logs:     nextConsumer,
 		Settings: rcs,
@@ -211,7 +213,8 @@ func (*nopWithEndpointFactory) CreateMetrics(
 	_ context.Context,
 	rcs rcvr.Settings,
 	cfg component.Config,
-	nextConsumer consumer.Metrics) (rcvr.Metrics, error) {
+	nextConsumer consumer.Metrics,
+) (rcvr.Metrics, error) {
 	return &nopWithEndpointReceiver{
 		Metrics:  nextConsumer,
 		Settings: rcs,
@@ -223,7 +226,8 @@ func (*nopWithEndpointFactory) CreateTraces(
 	_ context.Context,
 	rcs rcvr.Settings,
 	cfg component.Config,
-	nextConsumer consumer.Traces) (rcvr.Traces, error) {
+	nextConsumer consumer.Traces,
+) (rcvr.Traces, error) {
 	return &nopWithEndpointReceiver{
 		Traces:   nextConsumer,
 		Settings: rcs,
@@ -259,7 +263,8 @@ func (*nopWithoutEndpointFactory) CreateLogs(
 	_ context.Context,
 	rcs rcvr.Settings,
 	cfg component.Config,
-	nextConsumer consumer.Logs) (rcvr.Logs, error) {
+	nextConsumer consumer.Logs,
+) (rcvr.Logs, error) {
 	return &nopWithoutEndpointReceiver{
 		Logs:     nextConsumer,
 		Settings: rcs,
@@ -271,7 +276,8 @@ func (*nopWithoutEndpointFactory) CreateMetrics(
 	_ context.Context,
 	rcs rcvr.Settings,
 	cfg component.Config,
-	nextConsumer consumer.Metrics) (rcvr.Metrics, error) {
+	nextConsumer consumer.Metrics,
+) (rcvr.Metrics, error) {
 	return &nopWithoutEndpointReceiver{
 		Metrics:  nextConsumer,
 		Settings: rcs,
@@ -283,7 +289,8 @@ func (*nopWithoutEndpointFactory) CreateTraces(
 	_ context.Context,
 	rcs rcvr.Settings,
 	cfg component.Config,
-	nextConsumer consumer.Traces) (rcvr.Traces, error) {
+	nextConsumer consumer.Traces,
+) (rcvr.Traces, error) {
 	return &nopWithoutEndpointReceiver{
 		Traces:   nextConsumer,
 		Settings: rcs,
