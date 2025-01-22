@@ -350,6 +350,14 @@ func Test_createLabelSet(t *testing.T) {
 			getPromLabels(collidingSanitized, value11+";"+value12, label31, value31, label32, value32),
 		},
 		{
+			"existing_attribute_value_is_the_same_as_the_new_label_value",
+			pcommon.NewResource(),
+			lbsCollidingSameValue,
+			nil,
+			[]string{label31, value31, label32, value32},
+			getPromLabels(collidingSanitized, value11, label31, value31, label32, value32),
+		},
+		{
 			"sanitize_labels_starts_with_underscore",
 			pcommon.NewResource(),
 			lbs3,
@@ -476,6 +484,17 @@ func Test_getPromExemplars(t *testing.T) {
 					Value:     floatVal1,
 					Timestamp: timestamp.FromTime(tnow),
 					Labels:    []prompb.Label{getLabel(label11, value11)},
+				},
+			},
+		},
+		{
+			"with_exemplars_int_value",
+			getHistogramDataPointWithExemplars(t, tnow, intVal2, traceIDValue1, spanIDValue1, label11, value11),
+			[]prompb.Exemplar{
+				{
+					Value:     float64(intVal2),
+					Timestamp: timestamp.FromTime(tnow),
+					Labels:    []prompb.Label{getLabel(prometheustranslator.ExemplarTraceIDKey, traceIDValue1), getLabel(prometheustranslator.ExemplarSpanIDKey, spanIDValue1), getLabel(label11, value11)},
 				},
 			},
 		},

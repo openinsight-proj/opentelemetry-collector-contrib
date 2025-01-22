@@ -5,8 +5,8 @@
 // JSON documents.
 //
 // The JSON parsing in OpenSearch does not support parsing JSON documents
-// with duplicate fields. The fields in the docuemt can be sort and duplicate entries
-// can be removed before serializing. Deduplication ensures that ambigious
+// with duplicate fields. The fields in the document can be sort and duplicate entries
+// can be removed before serializing. Deduplication ensures that ambiguous
 // events can still be indexed.
 //
 // With attributes map encoded as a list of key value
@@ -85,8 +85,10 @@ const (
 
 const tsLayout = "2006-01-02T15:04:05.000000000Z"
 
-var nilValue = Value{kind: KindNil}
-var ignoreValue = Value{kind: KindIgnore}
+var (
+	nilValue    = Value{kind: KindNil}
+	ignoreValue = Value{kind: KindIgnore}
+)
 
 // DocumentFromAttributes creates a document from a OpenTelemetry attribute
 // map. All nested maps will be flattened, with keys being joined using a `.` symbol.
