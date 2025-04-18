@@ -233,25 +233,34 @@ extract:
     - tag_name: a1 # extracts value of annotation from pods with key `annotation-one` and inserts it as a tag with key `a1`
       key: annotation-one
       from: pod
-    - tag_name: a2 # extracts value of annotation from namespaces with key `annotation-two` with regexp and inserts it as a tag with key `a2`
+    - tag_name: a2 # extracts value of annotation from namespaces with key `annotation-two` and inserts it as a tag with key `a2`
       key: annotation-two
-      regex: field=(?P<value>.+)
       from: namespace
-    - tag_name: a3 # extracts value of annotation from nodes with key `annotation-three` with regexp and inserts it as a tag with key `a3`
+    - tag_name: a3 # extracts value of annotation from nodes with key `annotation-three` and inserts it as a tag with key `a3`
       key: annotation-three
-      regex: field=(?P<value>.+)
       from: node
   labels:
     - tag_name: l1 # extracts value of label from namespaces with key `label1` and inserts it as a tag with key `l1`
       key: label1
       from: namespace
-    - tag_name: l2 # extracts value of label from pods with key `label2` with regexp and inserts it as a tag with key `l2`
+    - tag_name: l2 # extracts value of label from pods with key `label2` and inserts it as a tag with key `l2`
       key: label2
-      regex: field=(?P<value>.+)
       from: pod
     - tag_name: l3 # extracts value of label from nodes with key `label3` and inserts it as a tag with key `l3`
       key: label3
       from: node
+```
+
+## Configuring recommended resource attributes 
+
+The processor can be configured to set the 
+[recommended resource attributes](https://opentelemetry.io/docs/specs/semconv/non-normative/k8s-attributes/):
+
+- `otel_annotations` will translate `resource.opentelemetry.io/foo` to the `foo` resource attribute, etc.
+
+```yaml
+  extract:
+    otel_annotations: true 
 ```
 
 ### Config example
@@ -274,10 +283,11 @@ k8sattributes/2:
       - k8s.node.name
       - k8s.pod.start_time
     labels:
-     # This label extraction rule takes the value 'app.kubernetes.io/component' label and maps it to the 'app.label.component' attribute which will be added to the associated resources
-     - tag_name: app.label.component
-       key: app.kubernetes.io/component
-       from: pod
+      # This label extraction rule takes the value 'app.kubernetes.io/component' label and maps it to the 'app.label.component' attribute which will be added to the associated resources
+      - tag_name: app.label.component
+        key: app.kubernetes.io/component
+        from: pod
+    otel_annotations: true 
   pod_association:
     - sources:
         # This rule associates all resources containing the 'k8s.pod.ip' attribute with the matching pods. If this attribute is not present in the resource, this rule will not be able to find the matching pod.
@@ -480,23 +490,7 @@ timestamp value as an RFC3339 compliant timestamp.
 ### `k8sattr.fieldExtractConfigRegex.disallow`
 
 The `k8sattr.fieldExtractConfigRegex.disallow` [feature gate](https://github.com/open-telemetry/opentelemetry-collector/blob/main/featuregate/README.md#collector-feature-gates) disallows the usage of the `extract.annotations.regex` and `extract.labels.regex` fields.
-The validation performed on the configuration will fail, if at least one of the parameters is set (non-empty) and `k8sattr.fieldExtractConfigRegex.disallow` is set to `true` (default `false`).
-
-#### Example Usage
-
-The following config with the feature gate set will lead to validation error:
-
-`config.yaml`:
-
-  ```yaml
-  extract:
-    labels:
-      regex: <my-regex1>
-    annotations:
-      regex: <my-regex2>
-  ```
-
-  Run collector: `./otelcol --config config.yaml --feature-gates=k8sattr.fieldExtractConfigRegex.disallow`
+The feature gate is in `stable` stage, which means it can no longer be disabled and is therefore enabled by default.
 
 #### Migration
 

@@ -6,6 +6,7 @@ package clickhouseexporter
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -73,7 +74,7 @@ func TestExporter_pushMetricsData(t *testing.T) {
 	t.Run("push failure", func(t *testing.T) {
 		initClickhouseTestServer(t, func(query string, _ []driver.Value) error {
 			if strings.HasPrefix(query, "INSERT") {
-				return fmt.Errorf("mock insert error")
+				return errors.New("mock insert error")
 			}
 			return nil
 		})
@@ -518,7 +519,6 @@ func mustPushMetricsData(t *testing.T, exporter *metricsExporter, md pmetric.Met
 	require.NoError(t, err)
 }
 
-// nolint:unparam // not need to check this func
 func newTestMetricsExporter(t *testing.T, dsn string, fns ...func(*Config)) *metricsExporter {
 	exporter, err := newMetricsExporter(zaptest.NewLogger(t), withTestExporterConfig(fns...)(dsn))
 	require.NoError(t, err)

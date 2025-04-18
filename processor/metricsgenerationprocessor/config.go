@@ -161,6 +161,13 @@ func (config *Config) Validate() error {
 		if rule.Operation != "" && !rule.Operation.isValid() {
 			return fmt.Errorf("%q must be in %q", operationFieldName, operationTypeKeys())
 		}
+
+		switch rule.Name {
+		case rule.Metric1:
+			return fmt.Errorf("value of field %q may not match value of field %q", nameFieldName, metric1FieldName)
+		case rule.Metric2:
+			return fmt.Errorf("value of field %q may not match value of field %q", nameFieldName, metric2FieldName)
+		}
 	}
 	return nil
 }

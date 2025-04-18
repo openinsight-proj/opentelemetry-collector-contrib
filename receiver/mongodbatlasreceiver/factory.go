@@ -43,7 +43,7 @@ func createMetricsReceiver(
 	recv := newMongoDBAtlasReceiver(params, cfg)
 	ms, err := newMongoDBAtlasScraper(recv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create a MongoDB Atlas Scaper instance: %w", err)
+		return nil, fmt.Errorf("unable to create a MongoDB Atlas Scraper instance: %w", err)
 	}
 
 	return scraperhelper.NewMetricsController(&cfg.ControllerConfig, params, consumer, scraperhelper.AddScraper(metadata.Type, ms))
@@ -112,6 +112,6 @@ func createDefaultConfig() component.Config {
 	}
 	// reset default of 1 minute to be 3 minutes in order to avoid null values for some metrics that do not publish
 	// more frequently
-	c.ControllerConfig.CollectionInterval = 3 * time.Minute
+	c.CollectionInterval = 3 * time.Minute
 	return c
 }

@@ -5,8 +5,14 @@ package ottl // import "github.com/open-telemetry/opentelemetry-collector-contri
 
 import (
 	"cmp"
+	"errors"
+	"fmt"
 	"math"
 	"slices"
+
+	"go.opentelemetry.io/collector/component"
+	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
 )
 
 var defaultContextInferPriority = []string{
@@ -15,20 +21,23 @@ var defaultContextInferPriority = []string{
 	"metric",
 	"spanevent",
 	"span",
-	"resource",
 	"scope",
 	"instrumentation_scope",
+	"resource",
 }
 
 // contextInferrer is an interface used to infer the OTTL context from statements.
 type contextInferrer interface {
-	// infer returns the OTTL context inferred from the given statements.
-	infer(statements []string) (string, error)
+	// inferFromStatements returns the OTTL context inferred from the given statements.
+	inferFromStatements(statements []string) (string, error)
+	// inferFromConditions returns the OTTL context inferred from the given conditions.
+	inferFromConditions(conditions []string) (string, error)
 }
 
 type priorityContextInferrer struct {
-	contextPriority  map[string]int
-	contextCandidate map[string]*priorityContextInferrerCandidate
+	telemetrySettings component.TelemetrySettings
+	contextPriority   map[string]int
+	contextCandidate  map[string]*priorityContextInferrerCandidate
 }
 
 type priorityContextInferrerCandidate struct {
@@ -49,9 +58,10 @@ type priorityContextInferrerOption func(*priorityContextInferrer)
 //
 // If non-prioritized contexts are found on the statements, they get assigned the lowest possible priority,
 // and are only selected if no other prioritized context is found.
-func newPriorityContextInferrer(contextsCandidate map[string]*priorityContextInferrerCandidate, options ...priorityContextInferrerOption) contextInferrer {
+func newPriorityContextInferrer(telemetrySettings component.TelemetrySettings, contextsCandidate map[string]*priorityContextInferrerCandidate, options ...priorityContextInferrerOption) contextInferrer {
 	c := &priorityContextInferrer{
-		contextCandidate: contextsCandidate,
+		telemetrySettings: telemetrySettings,
+		contextCandidate:  contextsCandidate,
 	}
 	for _, opt := range options {
 		opt(c)
@@ -74,20 +84,42 @@ func withContextInferrerPriorities(priorities []string) priorityContextInferrerO
 	}
 }
 
-func (s *priorityContextInferrer) infer(statements []string) (string, error) {
+func (s *priorityContextInferrer) inferFromConditions(conditions []string) (inferredContext string, err error) {
+	return s.infer(conditions, s.getConditionHints)
+}
+
+func (s *priorityContextInferrer) inferFromStatements(statements []string) (inferredContext string, err error) {
+	return s.infer(statements, s.getStatementHints)
+}
+
+// hinterFunc is used by the infer function to generate the hints (paths, functions, enums, etc.) for the given OTTL.
+type hinterFunc func(string) ([]path, map[string]struct{}, map[enumSymbol]struct{}, error)
+
+func (s *priorityContextInferrer) infer(ottls []string, hinter hinterFunc) (inferredContext string, err error) {
+	s.telemetrySettings.Logger.Debug("Inferring context from OTTL",
+		zap.Strings("candidates", maps.Keys(s.contextCandidate)),
+		zap.Any("priority", s.contextPriority),
+		zap.Strings("values", ottls),
+	)
+
+	defer func() {
+		if inferredContext != "" {
+			s.telemetrySettings.Logger.Debug(fmt.Sprintf(`Inferred context: "%s"`, inferredContext))
+		} else {
+			s.telemetrySettings.Logger.Debug("Unable to infer context from statements", zap.Error(err))
+		}
+	}()
+
 	requiredFunctions := map[string]struct{}{}
 	requiredEnums := map[enumSymbol]struct{}{}
 
-	var inferredContext string
 	var inferredContextPriority int
-	for _, statement := range statements {
-		parsed, err := parseStatement(statement)
-		if err != nil {
-			return "", err
+	for _, ottl := range ottls {
+		ottlPaths, ottlFunctions, ottlEnums, hinterErr := hinter(ottl)
+		if hinterErr != nil {
+			return "", hinterErr
 		}
-
-		statementPaths, statementFunctions, statementEnums := s.getParsedStatementHints(parsed)
-		for _, p := range statementPaths {
+		for _, p := range ottlPaths {
 			candidate := p.Context
 			candidatePriority, ok := s.contextPriority[candidate]
 			if !ok {
@@ -98,22 +130,25 @@ func (s *priorityContextInferrer) infer(statements []string) (string, error) {
 				inferredContextPriority = candidatePriority
 			}
 		}
-		for function := range statementFunctions {
+		for function := range ottlFunctions {
 			requiredFunctions[function] = struct{}{}
 		}
-		for enum := range statementEnums {
+		for enum := range ottlEnums {
 			requiredEnums[enum] = struct{}{}
 		}
 	}
 	// No inferred context or nothing left to verify.
 	if inferredContext == "" || (len(requiredFunctions) == 0 && len(requiredEnums) == 0) {
+		s.telemetrySettings.Logger.Debug("No context candidate found in the ottls")
 		return inferredContext, nil
 	}
-	ok := s.validateContextCandidate(inferredContext, requiredFunctions, requiredEnums)
-	if ok {
+	if err = s.validateContextCandidate(inferredContext, requiredFunctions, requiredEnums); err == nil {
 		return inferredContext, nil
 	}
-	return s.inferFromLowerContexts(inferredContext, requiredFunctions, requiredEnums), nil
+	if inferredFromLowerContexts, lowerContextErr := s.inferFromLowerContexts(inferredContext, requiredFunctions, requiredEnums); lowerContextErr == nil {
+		return inferredFromLowerContexts, nil
+	}
+	return "", err
 }
 
 // validateContextCandidate checks if the given context candidate has all required functions names
@@ -122,25 +157,26 @@ func (s *priorityContextInferrer) validateContextCandidate(
 	context string,
 	requiredFunctions map[string]struct{},
 	requiredEnums map[enumSymbol]struct{},
-) bool {
+) error {
+	s.telemetrySettings.Logger.Debug(fmt.Sprintf(`Validating selected context candidate: "%s"`, context))
 	candidate, ok := s.contextCandidate[context]
 	if !ok {
-		return false
+		return fmt.Errorf(`inferred context "%s" is not a valid candidate`, context)
 	}
 	if len(requiredFunctions) == 0 && len(requiredEnums) == 0 {
-		return true
+		return nil
 	}
 	for function := range requiredFunctions {
 		if !candidate.hasFunctionName(function) {
-			return false
+			return fmt.Errorf(`inferred context "%s" does not support the function "%s"`, context, function)
 		}
 	}
 	for enum := range requiredEnums {
 		if !candidate.hasEnumSymbol((*EnumSymbol)(&enum)) {
-			return false
+			return fmt.Errorf(`inferred context "%s" does not support the enum symbol "%s"`, context, string(enum))
 		}
 	}
-	return true
+	return nil
 }
 
 // inferFromLowerContexts returns the first lower context that supports all required functions
@@ -151,25 +187,33 @@ func (s *priorityContextInferrer) inferFromLowerContexts(
 	context string,
 	requiredFunctions map[string]struct{},
 	requiredEnums map[enumSymbol]struct{},
-) string {
+) (inferredContext string, err error) {
+	s.telemetrySettings.Logger.Debug(fmt.Sprintf(`Trying to infer context using "%s" lower contexts`, context))
+
+	defer func() {
+		if err != nil {
+			s.telemetrySettings.Logger.Debug("Unable to infer context from lower contexts", zap.Error(err))
+		}
+	}()
+
 	inferredContextCandidate, ok := s.contextCandidate[context]
 	if !ok {
-		return ""
+		return "", fmt.Errorf(`context "%s" is not a valid candidate`, context)
 	}
 
 	lowerContextCandidates := inferredContextCandidate.getLowerContexts(context)
 	if len(lowerContextCandidates) == 0 {
-		return ""
+		return "", fmt.Errorf(`context "%s" has no lower contexts candidates`, context)
 	}
 
 	s.sortContextCandidates(lowerContextCandidates)
 	for _, lowerCandidate := range lowerContextCandidates {
-		ok = s.validateContextCandidate(lowerCandidate, requiredFunctions, requiredEnums)
-		if ok {
-			return lowerCandidate
+		if candidateErr := s.validateContextCandidate(lowerCandidate, requiredFunctions, requiredEnums); candidateErr == nil {
+			return lowerCandidate, nil
 		}
+		s.telemetrySettings.Logger.Debug(fmt.Sprintf(`lower context "%s" is not a valid candidate`, lowerCandidate), zap.Error(err))
 	}
-	return ""
+	return "", errors.New("no valid lower context found")
 }
 
 // sortContextCandidates sorts the slice candidates using the priorityContextInferrer.contextsPriority order.
@@ -187,16 +231,34 @@ func (s *priorityContextInferrer) sortContextCandidates(candidates []string) {
 	})
 }
 
-// getParsedStatementHints extracts all path, function names (editor and converter), and enumSymbol
-// from the given parsed statements. These values are used by the context inferrer as hints to
+// getConditionHints extracts all path, function names (editor and converter), and enumSymbol
+// from the given condition. These values are used by the context inferrer as hints to
 // select a context in which the function/enum are supported.
-func (s *priorityContextInferrer) getParsedStatementHints(parsed *parsedStatement) ([]path, map[string]struct{}, map[enumSymbol]struct{}) {
+func (s *priorityContextInferrer) getConditionHints(condition string) ([]path, map[string]struct{}, map[enumSymbol]struct{}, error) {
+	parsed, err := parseCondition(condition)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	visitor := newGrammarContextInferrerVisitor()
+	parsed.accept(&visitor)
+	return visitor.paths, visitor.functions, visitor.enumsSymbols, nil
+}
+
+// getStatementHints extracts all path, function names (editor and converter), and enumSymbol
+// from the given statement. These values are used by the context inferrer as hints to
+// select a context in which the function/enum are supported.
+func (s *priorityContextInferrer) getStatementHints(statement string) ([]path, map[string]struct{}, map[enumSymbol]struct{}, error) {
+	parsed, err := parseStatement(statement)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	visitor := newGrammarContextInferrerVisitor()
 	parsed.Editor.accept(&visitor)
 	if parsed.WhereClause != nil {
 		parsed.WhereClause.accept(&visitor)
 	}
-	return visitor.paths, visitor.functions, visitor.enumsSymbols
+	return visitor.paths, visitor.functions, visitor.enumsSymbols, nil
 }
 
 // priorityContextInferrerHintsVisitor is a grammarVisitor implementation that collects
