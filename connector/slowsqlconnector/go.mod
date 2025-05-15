@@ -1,8 +1,6 @@
 module github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector
 
-go 1.22.0
-
-toolchain go1.22.7
+go 1.23.0
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.107.0
