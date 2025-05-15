@@ -129,7 +129,7 @@ func (c *logsConnector) exportTracesAsLogs(ctx context.Context, resourceSpans []
 		ilsSlice := rspans.ScopeSpans()
 		for j := 0; j < ilsSlice.Len(); j++ {
 			ils := ilsSlice.At(j)
-			//ils.Scope().CopyTo(sl.Scope())
+			// ils.Scope().CopyTo(sl.Scope())
 			spans := ils.Spans()
 			for k := 0; k < spans.Len(); k++ {
 				span := spans.At(k)

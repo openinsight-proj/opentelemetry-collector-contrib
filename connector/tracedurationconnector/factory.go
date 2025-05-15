@@ -31,12 +31,11 @@ var (
 
 // NewFactory returns a new factory for the Filter processor.
 func NewFactory() connector.Factory {
-
 	return connector.NewFactory(
 		metadata.Type,
 		createDefaultConfig,
 		connector.WithTracesToLogs(createTracesToLogsConnector, metadata.TracesToLogsStability),
-		//processor.WithTraces(createTracesProcessor, metadata.TracesStability)
+		// processor.WithTraces(createTracesProcessor, metadata.TracesStability)
 	)
 }
 

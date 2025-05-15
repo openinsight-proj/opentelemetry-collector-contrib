@@ -60,7 +60,6 @@ func newVeopsCMDBExporter(set exporter.Settings, config *Config) (*cmdbLogsExpor
 }
 
 func (e *cmdbLogsExporter) exportResources(ctx context.Context, ld plog.Logs) error {
-
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		rlogs := ld.ResourceLogs().At(i)
 		for j := 0; j < rlogs.ScopeLogs().Len(); j++ {
@@ -95,7 +94,6 @@ func (e *cmdbLogsExporter) exportResources(ctx context.Context, ld plog.Logs) er
 
 func (e *cmdbLogsExporter) start(ctx context.Context, host component.Host) (err error) {
 	client, err := e.httpClientSettings.ToClient(ctx, host, e.set)
-
 	if err != nil {
 		return err
 	}
