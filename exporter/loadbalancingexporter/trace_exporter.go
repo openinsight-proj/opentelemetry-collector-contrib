@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/multierr"
+	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/loadbalancingexporter/internal/metadata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/batchpersignal"
@@ -33,6 +34,7 @@ type traceExporterImp struct {
 	stopped    bool
 	shutdownWg sync.WaitGroup
 	telemetry  *metadata.TelemetryBuilder
+	logger     *zap.Logger
 }
 
 // Create new traces exporter
@@ -57,6 +59,7 @@ func newTracesExporter(params exporter.Settings, cfg component.Config) (*traceEx
 		loadBalancer: lb,
 		routingKey:   traceIDRouting,
 		telemetry:    telemetry,
+		logger:       params.Logger,
 	}
 
 	switch cfg.(*Config).RoutingKey {
@@ -103,6 +106,7 @@ func (e *traceExporterImp) ConsumeTraces(ctx context.Context, td ptrace.Traces) 
 
 		for rid := range routingID {
 			exp, endpoint, err := e.loadBalancer.exporterAndEndpoint([]byte(rid))
+			e.logger.Debug("LB export", zap.String("endpoint", endpoint), zap.String("traceId", rid))
 			if err != nil {
 				return err
 			}

@@ -41,6 +41,7 @@ func (h handler) OnAdd(obj any, _ bool) {
 			changed = true
 		}
 	}
+	h.printCurrentEps(endpoints)
 	if changed {
 		_, _ = h.callback(context.Background())
 	}
@@ -64,11 +65,13 @@ func (h handler) OnUpdate(oldObj, newObj any) {
 			return
 		}
 		changed := false
-		for _, ep := range convertToEndpoints(newEps) {
+		newConvertedEPS := convertToEndpoints(newEps)
+		for _, ep := range newConvertedEPS {
 			if _, loaded := h.endpoints.LoadOrStore(ep, true); !loaded {
 				changed = true
 			}
 		}
+		h.printCurrentEps(newConvertedEPS)
 		if changed {
 			_, _ = h.callback(context.Background())
 		}
@@ -100,6 +103,7 @@ func (h handler) OnDelete(obj any) {
 		}
 		_, _ = h.callback(context.Background())
 	}
+	h.printCurrentEps(endpoints)
 }
 
 func convertToEndpoints(eps ...*corev1.Endpoints) []string {
@@ -112,4 +116,8 @@ func convertToEndpoints(eps ...*corev1.Endpoints) []string {
 		}
 	}
 	return ipAddress
+}
+
+func (h handler) printCurrentEps(eps []string) {
+	h.logger.Debug("===Current", zap.Strings("EPS", eps))
 }
