@@ -1,0 +1,14 @@
+# default configuration
+slowsql/default:
+
+# configuration with all possible parameters
+slowsql/full:
+  # Additional list of dimensions on top of:
+  # - service.name
+  # - span.name
+  # - span.kind
+  # - status.code
+  # - exception.stacktrace (Only for log records)
+  dimensions:
+    - name: k8s.uuid
+    - name: k8s.namespace.name

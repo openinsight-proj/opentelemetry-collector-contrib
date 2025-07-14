@@ -1,0 +1,13 @@
+type: veopscmdbexporter
+scope_name: otelcol/veopscmdbexporter
+
+status:
+  class: exporter
+  stability:
+    alpha: [logs]
+  distributions: [contrib]
+  codeowners:
+    active: [JaredTan95]
+
+tests:
+  expect_consumer_error: true
