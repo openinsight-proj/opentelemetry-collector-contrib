@@ -27,7 +27,7 @@ type Config struct {
 	KubernetesClusterCIType int64 `mapstructure:"kubernetes_cluster_ci_type"`
 
 	confighttp.ClientConfig   `mapstructure:",squash"`
-	QueueSettings             exporterhelper.QueueConfig `mapstructure:"sending_queue"`
+	QueueSettings             exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
 	configretry.BackOffConfig `mapstructure:"retry_on_failure"`
 }
 
