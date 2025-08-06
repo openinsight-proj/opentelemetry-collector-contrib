@@ -112,6 +112,7 @@ exporters:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter v0.131.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tinybirdexporter v0.131.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter v0.131.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter v0.131.0
 
 processors:
   - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.131.0
@@ -264,6 +265,8 @@ connectors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.131.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/sumconnector v0.131.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.131.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector v0.131.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/tracedurationconnector v0.131.0
 
 providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.37.0
@@ -279,3 +282,6 @@ providers:
 # file before passing it to OCB, to ensure that local versions are used for all
 # Contrib modules.
 replaces:
+  - github.com/open-telemetry/opentelemetry-collector-contrib/exporter/veopscmdbexporter => ../../exporter/veopscmdbexporter
+  - github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector => ../../connector/slowsqlconnector
+  - github.com/open-telemetry/opentelemetry-collector-contrib/connector/tracedurationconnector => ../../connector/tracedurationconnector
