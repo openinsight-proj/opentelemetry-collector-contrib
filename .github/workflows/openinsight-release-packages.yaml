@@ -41,10 +41,15 @@ jobs:
       contents: read
       packages: write
     timeout-minutes: 90
-    env:
-      TAG: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v4
+      - name: Extract version from versions.yaml
+        uses: mikefarah/yq@master
+        with:
+          cmd: |
+            echo "TAG=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+            VERSION=$(yq e '.module-sets.contrib-base.version' versions.yaml)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         with:
           go-version: 1.23.10
@@ -73,7 +78,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.ACTIONS_TOKEN }}
-      - uses: actions/checkout@v4
       - run: make genotelcontribcol
       - name: Build otel col contrib amd64
         run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_linux_amd64 ./cmd/otelcontribcol_linux_amd64
@@ -89,4 +93,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.REGISTRY_SERVER_ADDRESS }}/opentelemetry-collector-contrib:${{ env.TAG }}
+          tags: ${{ env.REGISTRY_SERVER_ADDRESS }}/opentelemetry-collector-contrib:${{ env.VERSION }}-${{ env.TAG }}
