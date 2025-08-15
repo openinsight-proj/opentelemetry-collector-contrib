@@ -762,9 +762,11 @@ func (p *serviceGraphConnector) cleanCache() {
 		delete(p.reqClientDurationSecondsCount, key)
 		delete(p.reqClientDurationSecondsSum, key)
 		delete(p.reqClientDurationSecondsBucketCounts, key)
+		delete(p.reqClientDurationExpHistogram, key)
 		delete(p.reqServerDurationSecondsCount, key)
 		delete(p.reqServerDurationSecondsSum, key)
 		delete(p.reqServerDurationSecondsBucketCounts, key)
+		delete(p.reqServerDurationExpHistogram, key)
 	}
 	p.seriesMutex.Unlock()
 
