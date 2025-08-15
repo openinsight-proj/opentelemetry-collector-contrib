@@ -47,7 +47,7 @@ jobs:
         uses: mikefarah/yq@master
         with:
           cmd: |
-            echo "TAG=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+            echo "TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
             VERSION=$(yq e '.module-sets.contrib-base.version' versions.yaml)
             echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5

@@ -11,7 +11,7 @@ require (
 	go.opentelemetry.io/collector/connector v0.110.0
 	go.opentelemetry.io/collector/consumer v0.110.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.110.0
-	go.opentelemetry.io/collector/pdata v1.37.0
+	go.opentelemetry.io/collector/pdata v1.38.0
 	go.opentelemetry.io/collector/pipeline v0.110.0
 	go.opentelemetry.io/collector/processor v0.109.0
 	go.opentelemetry.io/collector/semconv v0.110.0
@@ -56,7 +56,7 @@ require (
 	golang.org/x/text v0.25.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a // indirect
 	google.golang.org/grpc v1.74.2 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
