@@ -30,8 +30,6 @@ on:
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY_SERVER_ADDRESS: ghcr.io/openinsight-proj
-  REGISTRY_USER_NAME: ${{ github.repository_owner }}
-  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
 
 jobs:
   release-images:
@@ -77,7 +75,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.ACTIONS_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - run: make genotelcontribcol
       - name: Build otel col contrib amd64
         run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_linux_amd64 ./cmd/otelcontribcol_linux_amd64
