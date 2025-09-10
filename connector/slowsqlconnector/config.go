@@ -33,6 +33,9 @@ type Config struct {
 	// The dimensions will be fetched from the span's attributes. Examples of some conventionally used attributes:
 	// https://github.com/open-telemetry/opentelemetry-collector/blob/main/model/semconv/opentelemetry.go.
 	Dimensions []Dimension `mapstructure:"dimensions"`
+
+	// KeyDimensions defines the list of additional dimensions to build key.
+	KeyDimensions []Dimension `mapstructure:"key_dimensions"`
 	// Exemplars defines the configuration for exemplars.
 	Exemplars Exemplars `mapstructure:"exemplars"`
 }
@@ -42,6 +45,11 @@ var _ xconfmap.Validator = (*Config)(nil)
 // Validate checks if the connector configuration is valid
 func (c Config) Validate() error {
 	err := validateDimensions(c.Dimensions)
+	if err != nil {
+		return err
+	}
+
+	err = validateDimensions(c.KeyDimensions)
 	if err != nil {
 		return err
 	}

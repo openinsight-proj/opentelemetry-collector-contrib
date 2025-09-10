@@ -5,6 +5,8 @@ package slowsqlconnector // import "github.com/open-telemetry/opentelemetry-coll
 
 import (
 	"context"
+	"encoding/base64"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -22,7 +24,8 @@ type logsConnector struct {
 	config Config
 
 	// Additional dimensions to add to logs.
-	dimensions []dimension
+	dimensions    []dimension
+	keyDimensions []dimension
 
 	logsConsumer consumer.Logs
 	component.StartFunc
@@ -35,9 +38,10 @@ func newLogsConnector(logger *zap.Logger, config component.Config) *logsConnecto
 	cfg := config.(*Config)
 
 	return &logsConnector{
-		logger:     logger,
-		config:     *cfg,
-		dimensions: newDimensions(cfg.Dimensions),
+		logger:        logger,
+		config:        *cfg,
+		dimensions:    newDimensions(cfg.Dimensions),
+		keyDimensions: newDimensions(cfg.KeyDimensions),
 	}
 }
 
@@ -130,6 +134,15 @@ func (c *logsConnector) attrToLogRecord(sl plog.ScopeLogs, serviceName string, s
 			logRecord.Attributes().PutStr(d.name, v.Str())
 		}
 	}
+
+	var keys []string
+	encode := base64.StdEncoding
+	for _, kd := range c.keyDimensions {
+		if v, ok := getDimensionValue(kd, spanAttrs, resourceAttrs); ok {
+			keys = append(keys, encode.EncodeToString([]byte(v.Str())))
+		}
+	}
+	logRecord.Attributes().PutStr("slow_sql_agg_key", strings.Join(keys, "@"))
 
 	return logRecord
 }
