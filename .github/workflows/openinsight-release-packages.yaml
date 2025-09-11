@@ -27,6 +27,10 @@ on:
       - main
       - insight-main
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY_SERVER_ADDRESS: ghcr.io/openinsight-proj
