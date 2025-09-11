@@ -36,8 +36,10 @@ jobs:
     if: github.repository == 'openinsight-proj/opentelemetry-collector-contrib'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       packages: write
+      contents: read
+      attestations: write
+      id-token: write
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -71,11 +73,11 @@ jobs:
         #if: steps.go-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Login to GitHub Package Registry
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.ACTIONS_TOKEN_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - run: make genotelcontribcol
       - name: Build otel col contrib amd64
         run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_linux_amd64 ./cmd/otelcontribcol_linux_amd64
