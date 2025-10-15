@@ -5,6 +5,7 @@ package slowsqlconnector // import "github.com/open-telemetry/opentelemetry-coll
 
 import (
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/collector/confmap/xconfmap"
 )
@@ -13,16 +14,14 @@ import (
 type Dimension struct {
 	Name    string  `mapstructure:"name"`
 	Default *string `mapstructure:"default"`
-}
-
-type Exemplars struct {
-	Enabled bool `mapstructure:"enabled"`
+	// prevent unkeyed literal initialization
+	_ struct{}
 }
 
 // Config defines the configuration options for exceptionsconnector
 type Config struct {
-	// Threshold of slow sql. unit is seconds, default 1s.
-	Threshold float64 `mapstructure:"threshold"`
+	// Threshold of slow sql. default 500ms.
+	Threshold time.Duration `mapstructure:"threshold"`
 	// Filter specific db systems, default "h2", "mongodb", "mssql", "mysql", "oracle", "progress", "postgresql", "mariadb", ref: https://opentelemetry.io/docs/specs/semconv/attributes-registry/db/
 	DBSystem []string `mapstructure:"db_system"`
 	// Dimensions defines the list of additional dimensions on top of the provided:
@@ -36,8 +35,6 @@ type Config struct {
 
 	// KeyDimensions defines the list of additional dimensions to build key.
 	KeyDimensions []Dimension `mapstructure:"key_dimensions"`
-	// Exemplars defines the configuration for exemplars.
-	Exemplars Exemplars `mapstructure:"exemplars"`
 }
 
 var _ xconfmap.Validator = (*Config)(nil)
@@ -53,6 +50,7 @@ func (c Config) Validate() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

@@ -7,15 +7,17 @@ package slowsqlconnector // import "github.com/open-telemetry/opentelemetry-coll
 
 import (
 	"context"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/connector"
 	"go.opentelemetry.io/collector/consumer"
+	conventions "go.opentelemetry.io/otel/semconv/v1.27.0"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector/internal/metadata"
 )
 
-// NewFactory creates a factory for the exceptions connector.
+// NewFactory creates a factory for the slow SQL connector.
 func NewFactory() connector.Factory {
 	return connector.NewFactory(
 		metadata.Type,
@@ -26,8 +28,12 @@ func NewFactory() connector.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		Threshold:  1,
-		DBSystem:   []string{"h2", "mongodb", "mssql", "mysql", "oracle", "progress", "postgresql", "mariadb"},
+		Threshold: time.Millisecond * 500,
+		DBSystem: []string{
+			string(conventions.DBSystemH2.Key), string(conventions.DBSystemMongoDB.Key),
+			string(conventions.DBSystemMySQL.Key), string(conventions.DBSystemOracle.Key),
+			string(conventions.DBSystemPostgreSQL.Key), string(conventions.DBSystemMariaDB.Key),
+		},
 		Dimensions: []Dimension{},
 	}
 }

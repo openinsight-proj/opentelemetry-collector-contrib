@@ -55,6 +55,8 @@ jobs:
         with:
           go-version: oldstable
           cache-dependency-path: "**/*.sum"
+      # refs: https://github.com/FuelLabs/fuel.nix/pull/121
+      - uses: jlumbroso/free-disk-space@main
       - name: Install dependencies
         if: steps.go-setup.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload

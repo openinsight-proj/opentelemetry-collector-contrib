@@ -5,27 +5,25 @@ package slowsqlconnector // import "github.com/open-telemetry/opentelemetry-coll
 
 import (
 	"context"
-	"encoding/base64"
-	"strings"
-	"time"
-
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	conventions "go.opentelemetry.io/collector/semconv/v1.6.1"
+	conventions "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.uber.org/zap"
+	"strings"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/traceutil"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil"
 )
 
 type logsConnector struct {
 	config Config
 
 	// Additional dimensions to add to logs.
-	dimensions    []dimension
-	keyDimensions []dimension
+	dimensions    []pdatautil.Dimension
+	keyDimensions []pdatautil.Dimension
 
 	logsConsumer consumer.Logs
 	component.StartFunc
@@ -38,15 +36,14 @@ func newLogsConnector(logger *zap.Logger, config component.Config) *logsConnecto
 	cfg := config.(*Config)
 
 	return &logsConnector{
-		logger:        logger,
-		config:        *cfg,
-		dimensions:    newDimensions(cfg.Dimensions),
-		keyDimensions: newDimensions(cfg.KeyDimensions),
+		logger:     logger,
+		config:     *cfg,
+		dimensions: newDimensions(cfg.Dimensions),
 	}
 }
 
 // Capabilities implements the consumer interface.
-func (c *logsConnector) Capabilities() consumer.Capabilities {
+func (*logsConnector) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
@@ -57,7 +54,7 @@ func (c *logsConnector) ConsumeTraces(ctx context.Context, traces ptrace.Traces)
 	for i := 0; i < traces.ResourceSpans().Len(); i++ {
 		rspans := traces.ResourceSpans().At(i)
 		resourceAttr := rspans.Resource().Attributes()
-		serviceAttr, ok := resourceAttr.Get(conventions.AttributeServiceName)
+		serviceAttr, ok := resourceAttr.Get(string(conventions.ServiceNameKey))
 		if !ok {
 			continue
 		}
@@ -71,12 +68,11 @@ func (c *logsConnector) ConsumeTraces(ctx context.Context, traces ptrace.Traces)
 			spans := ils.Spans()
 			for k := 0; k < spans.Len(); k++ {
 				span := spans.At(k)
-				switch span.Kind() {
-				case ptrace.SpanKindClient:
+				if span.Kind() == ptrace.SpanKindClient {
 					// through db.Statement exists represents db client
 					if _, dbSystem := findAttributeValue(dbSystemKey, span.Attributes()); dbSystem {
 						for _, db := range c.config.DBSystem {
-							if db == getValue(span.Attributes(), dbSystemKey) && spanDuration(span) >= c.config.Threshold {
+							if db == getValue(span.Attributes(), dbSystemKey) && spanDuration(span) >= c.config.Threshold.Nanoseconds() {
 								c.attrToLogRecord(sl, serviceName, span, resourceAttr)
 							}
 						}
@@ -88,9 +84,9 @@ func (c *logsConnector) ConsumeTraces(ctx context.Context, traces ptrace.Traces)
 	return c.exportLogs(ctx, ld)
 }
 
-// spanDuration returns the duration of the given span in seconds
-func spanDuration(span ptrace.Span) float64 {
-	return float64(span.EndTimestamp()-span.StartTimestamp()) / float64(time.Millisecond.Nanoseconds())
+// spanDuration returns the duration of the given span in nano
+func spanDuration(span ptrace.Span) int64 {
+	return int64(span.EndTimestamp()) - int64(span.StartTimestamp())
 }
 
 func (c *logsConnector) exportLogs(ctx context.Context, ld plog.Logs) error {
@@ -101,7 +97,7 @@ func (c *logsConnector) exportLogs(ctx context.Context, ld plog.Logs) error {
 	return nil
 }
 
-func (c *logsConnector) newScopeLogs(ld plog.Logs) plog.ScopeLogs {
+func (*logsConnector) newScopeLogs(ld plog.Logs) plog.ScopeLogs {
 	rl := ld.ResourceLogs().AppendEmpty()
 	sl := rl.ScopeLogs().AppendEmpty()
 	return sl
@@ -126,23 +122,24 @@ func (c *logsConnector) attrToLogRecord(sl plog.ScopeLogs, serviceName string, s
 	logRecord.Attributes().PutStr(statusCodeKey, traceutil.StatusCodeStr(span.Status().Code()))
 	logRecord.Attributes().PutStr(serviceNameKey, serviceName)
 	logRecord.Attributes().PutStr(dbStatementKey, getValue(spanAttrs, dbStatementKey))
-	logRecord.Attributes().PutDouble(statementExecDuration, spanDuration(span)) // seconds
+	logRecord.Attributes().PutInt(statementExecDuration, spanDuration(span)) // nanos
 
 	// Add configured dimension attributes to the log record.
 	for _, d := range c.dimensions {
-		if v, ok := getDimensionValue(d, spanAttrs, resourceAttrs); ok {
-			logRecord.Attributes().PutStr(d.name, v.Str())
+		if v, ok := pdatautil.GetDimensionValue(d, spanAttrs, resourceAttrs); ok {
+			logRecord.Attributes().PutStr(d.Name, v.Str())
 		}
 	}
 
-	var keys []string
-	encode := base64.StdEncoding
-	for _, kd := range c.keyDimensions {
-		if v, ok := getDimensionValue(kd, spanAttrs, resourceAttrs); ok {
-			keys = append(keys, encode.EncodeToString([]byte(v.Str())))
+	if len(c.keyDimensions) > 0 {
+		var keys []string
+		for _, kd := range c.keyDimensions {
+			if v, ok := pdatautil.GetDimensionValue(kd, spanAttrs, resourceAttrs); ok {
+				keys = append(keys, v.Str())
+			}
 		}
+		logRecord.Attributes().PutStr("slow_sql_agg_key", strings.Join(keys, "^"))
 	}
-	logRecord.Attributes().PutStr("slow_sql_agg_key", strings.Join(keys, "@"))
 
 	return logRecord
 }

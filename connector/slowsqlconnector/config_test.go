@@ -1,16 +1,18 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-package slowsqlconnector
+package slowsqlconnector // import "github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector"
 
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
+	"go.opentelemetry.io/collector/confmap/xconfmap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/slowsqlconnector/internal/metadata"
 )
@@ -32,13 +34,11 @@ func TestLoadConfig(t *testing.T) {
 		{
 			id: component.NewIDWithName(metadata.Type, "full"),
 			expected: &Config{
-				Threshold: 1,
+				Threshold: time.Millisecond * 600,
+				DBSystem:  []string{"h2", "mysql"},
 				Dimensions: []Dimension{
-					{Name: "k8s.uuid"},
 					{Name: "k8s.namespace.name"},
-				},
-				Exemplars: Exemplars{
-					Enabled: false,
+					{Name: "k8s.pod.name"},
 				},
 			},
 		},
@@ -53,52 +53,8 @@ func TestLoadConfig(t *testing.T) {
 			require.NoError(t, err)
 			err = sub.Unmarshal(cfg)
 			assert.NoError(t, err)
-			assert.NoError(t, component.ValidateConfig(cfg))
+			assert.NoError(t, xconfmap.Validate(cfg))
 			assert.Equal(t, tt.expected, cfg)
-		})
-	}
-}
-
-func TestValidateDimensions(t *testing.T) {
-	for _, tc := range []struct {
-		name        string
-		dimensions  []Dimension
-		expectedErr string
-	}{
-		{
-			name:       "no additional dimensions",
-			dimensions: []Dimension{},
-		},
-		{
-			name: "no duplicate dimensions",
-			dimensions: []Dimension{
-				{Name: "http.service_name"},
-				{Name: "http.status_code"},
-			},
-		},
-		{
-			name: "duplicate dimension with reserved labels",
-			dimensions: []Dimension{
-				{Name: "service.name"},
-			},
-			expectedErr: "duplicate dimension name \"service.name\"",
-		},
-		{
-			name: "duplicate additional dimensions",
-			dimensions: []Dimension{
-				{Name: "service_name"},
-				{Name: "service_name"},
-			},
-			expectedErr: "duplicate dimension name \"service_name\"",
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			err := validateDimensions(tc.dimensions)
-			if tc.expectedErr != "" {
-				assert.EqualError(t, err, tc.expectedErr)
-			} else {
-				assert.NoError(t, err)
-			}
 		})
 	}
 }

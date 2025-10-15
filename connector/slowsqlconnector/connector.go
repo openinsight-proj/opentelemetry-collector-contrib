@@ -5,60 +5,34 @@ package slowsqlconnector // import "github.com/open-telemetry/opentelemetry-coll
 
 import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
-	conventions "go.opentelemetry.io/collector/semconv/v1.18.0"
+	conventions "go.opentelemetry.io/otel/semconv/v1.27.0"
+
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil"
 )
 
 const (
-	serviceNameKey        = conventions.AttributeServiceName
-	spanKindKey           = "span.kind"                      // OpenTelemetry non-standard constant.
-	spanNameKey           = "span.name"                      // OpenTelemetry non-standard constant.
-	statusCodeKey         = "status.code"                    // OpenTelemetry non-standard constant.
-	dbStatementKey        = conventions.AttributeDBStatement // OpenTelemetry non-standard constant.
-	dbSystemKey           = conventions.AttributeDBSystem    // OpenTelemetry non-standard constant.
-	statementExecDuration = "db.statement.duration"          // OpenTelemetry non-standard constant.
+	serviceNameKey        = string(conventions.ServiceNameKey)
+	dbSystemKey           = string(conventions.DBSystemKey)
+	statementExecDuration = conventions.DBClientOperationDurationName
+	spanKindKey           = "span.kind"    // OpenTelemetry non-standard constant.
+	spanNameKey           = "span.name"    // OpenTelemetry non-standard constant.
+	statusCodeKey         = "status.code"  // OpenTelemetry non-standard constant.
+	dbStatementKey        = "db.statement" // OpenTelemetry non-standard constant.
 )
 
-type dimension struct {
-	name  string
-	value *pcommon.Value
-}
-
-func newDimensions(cfgDims []Dimension) []dimension {
+func newDimensions(cfgDims []Dimension) []pdatautil.Dimension {
 	if len(cfgDims) == 0 {
 		return nil
 	}
-	dims := make([]dimension, len(cfgDims))
+	dims := make([]pdatautil.Dimension, len(cfgDims))
 	for i := range cfgDims {
-		dims[i].name = cfgDims[i].Name
+		dims[i].Name = cfgDims[i].Name
 		if cfgDims[i].Default != nil {
 			val := pcommon.NewValueStr(*cfgDims[i].Default)
-			dims[i].value = &val
+			dims[i].Value = &val
 		}
 	}
 	return dims
-}
-
-// getDimensionValue gets the dimension value for the given configured dimension.
-// It searches through the span's attributes first, being the more specific;
-// falling back to searching in resource attributes if it can't be found in the span.
-// Finally, falls back to the configured default value if provided.
-//
-// The ok flag indicates if a dimension value was fetched in order to differentiate
-// an empty string value from a state where no value was found.
-func getDimensionValue(d dimension, spanAttrs pcommon.Map, resourceAttr pcommon.Map) (v pcommon.Value, ok bool) {
-	// The more specific span attribute should take precedence.
-	if attr, exists := spanAttrs.Get(d.name); exists {
-		return attr, true
-	}
-	// falling back to searching in resource attributes
-	if attr, exists := resourceAttr.Get(d.name); exists {
-		return attr, true
-	}
-	// Set the default if configured, otherwise this metric will have no value set for the dimension.
-	if d.value != nil {
-		return *d.value, true
-	}
-	return v, ok
 }
 
 func findAttributeValue(key string, attributes ...pcommon.Map) (string, bool) {
