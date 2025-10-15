@@ -10,7 +10,20 @@ exporters:
 
 connectors:
   slowsql:
-
+    threshold: 1ms
+    dimensions:
+      - name: k8s.cluster.id
+      - name: k8s.namespace.name
+      # span name
+      - name: name
+      - name: db.statement
+    key_dimensions:
+      - name: k8s.cluster.id
+      - name: k8s.namespace.name
+      - name: server.address
+      - name: db.connection_string # rollback to get value for server.address
+      - name: db.system
+      - name: db.statement
 service:
   pipelines:
     traces:
