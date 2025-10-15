@@ -651,6 +651,50 @@ func TestExporterLogs(t *testing.T) {
 		}
 	})
 
+	t.Run("retry http request batcher", func(t *testing.T) {
+		for _, maxRetries := range []int{0, 1, 11} {
+			t.Run(fmt.Sprintf("max retries %d", maxRetries), func(t *testing.T) {
+				t.Parallel()
+				expectedRetries := maxRetries
+				if maxRetries == 0 {
+					expectedRetries = defaultMaxRetries
+				}
+
+				var attempts atomic.Int64
+				rec := newBulkRecorder()
+				server := newESTestServer(t, func(_ []itemRequest) ([]itemResponse, error) {
+					// always return error, and assert that the number of attempts is expected, not more, not less.
+					attempts.Add(1)
+					return nil, &httpTestError{status: http.StatusServiceUnavailable, message: "oops"}
+				})
+
+				exporter := newTestLogsExporter(t, server.URL, func(cfg *Config) {
+					cfg.Retry.Enabled = true
+					cfg.Retry.RetryOnStatus = []int{http.StatusServiceUnavailable}
+					cfg.Retry.MaxRetries = maxRetries
+					cfg.Retry.InitialInterval = 1 * time.Millisecond
+					cfg.Retry.MaxInterval = 5 * time.Millisecond
+
+					// use sync bulk indexer
+					cfg.Batcher.Enabled = false
+					cfg.Batcher.enabledSet = true
+				})
+
+				logs := plog.NewLogs()
+				resourceLogs := logs.ResourceLogs().AppendEmpty()
+				scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+				scopeLogs.LogRecords().AppendEmpty()
+				logs.MarkReadOnly()
+				err := exporter.ConsumeLogs(context.Background(), logs) // as sync bulk indexer is used, retries are finished on return
+				var errFlushFailed docappender.ErrorFlushFailed
+				require.ErrorAs(t, err, &errFlushFailed)
+
+				assert.Equal(t, 0, rec.countItems())
+				assert.Equal(t, int64(expectedRetries+1), attempts.Load()) // initial request + retries
+			})
+		}
+	})
+
 	t.Run("retry http request", func(t *testing.T) {
 		for _, maxRetries := range []int{0, 1, 11} {
 			t.Run(fmt.Sprintf("max retries %d", maxRetries), func(t *testing.T) {

@@ -1,0 +1,5 @@
+veopscmdbexporter:
+  api_key: "test-apikey"
+  api_secret: "test-apisecret"
+  kubernetes_cluster_ci_type: 58
+    #namespaces_type: "1"

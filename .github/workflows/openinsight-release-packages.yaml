@@ -1,0 +1,85 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: openinsight-release-packages
+
+on:
+  push:
+    branches:
+      - main
+      - insight-main
+    tags: ["v*"]
+  pull_request:
+    branches:
+      - main
+      - insight-main
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY_SERVER_ADDRESS: ghcr.io/openinsight-proj
+
+jobs:
+  release-images:
+    if: github.repository == 'openinsight-proj/opentelemetry-collector-contrib'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version from versions.yaml
+        uses: mikefarah/yq@master
+        with:
+          cmd: |
+            echo "TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+            VERSION=$(yq e '.module-sets.contrib-base.version' versions.yaml)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        id: go-setup
+        with:
+          go-version: oldstable
+          cache-dependency-path: "**/*.sum"
+      - name: Install dependencies
+        if: steps.go-setup.outputs.cache-hit != 'true'
+        run: make -j2 gomoddownload
+      - name: Install Tools
+        if: steps.go-setup.outputs.cache-hit != 'true'
+        run: make install-tools
+      - name: Login to GitHub Package Registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: make genotelcontribcol
+      - name: Build otel col contrib amd64
+        run: GOOS=linux GOARCH=amd64 make otelcontribcol && cp ./bin/otelcontribcol_linux_amd64 ./cmd/otelcontribcol_linux_amd64
+      - name: Build otel col contrib arm64
+        run: GOOS=linux GOARCH=arm64 make otelcontribcol && cp ./bin/otelcontribcol_linux_arm64 ./cmd/otelcontribcol_linux_arm64
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.1.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.2.1
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY_SERVER_ADDRESS }}/opentelemetry-collector-contrib:${{ env.VERSION }}-${{ env.TAG }}
