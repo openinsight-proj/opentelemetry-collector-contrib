@@ -50,13 +50,13 @@ jobs:
             echo "TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
             VERSION=$(yq e '.module-sets.contrib-base.version' versions.yaml)
             echo "VERSION=$VERSION" >> $GITHUB_ENV
+      # refs: https://github.com/FuelLabs/fuel.nix/pull/121
+      - uses: jlumbroso/free-disk-space@main
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         id: go-setup
         with:
           go-version: oldstable
           cache-dependency-path: "**/*.sum"
-      # refs: https://github.com/FuelLabs/fuel.nix/pull/121
-      - uses: jlumbroso/free-disk-space@main
       - name: Install dependencies
         if: steps.go-setup.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload
