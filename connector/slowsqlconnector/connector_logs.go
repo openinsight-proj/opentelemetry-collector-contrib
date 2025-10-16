@@ -36,9 +36,10 @@ func newLogsConnector(logger *zap.Logger, config component.Config) *logsConnecto
 	cfg := config.(*Config)
 
 	return &logsConnector{
-		logger:     logger,
-		config:     *cfg,
-		dimensions: newDimensions(cfg.Dimensions),
+		logger:        logger,
+		config:        *cfg,
+		dimensions:    newDimensions(cfg.Dimensions),
+		keyDimensions: newDimensions(cfg.KeyDimensions),
 	}
 }
 
