@@ -21,7 +21,9 @@ func TestNewConnector(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		dimensions     []Dimension
+		dBSystem       []string
 		wantDimensions []pdatautil.Dimension
+		wantDBSystem   []string
 	}{
 		{
 			name: "simplest config (use defaults)",
@@ -32,10 +34,12 @@ func TestNewConnector(t *testing.T) {
 				{Name: "http.method", Default: &defaultMethod},
 				{Name: "http.status_code"},
 			},
+			dBSystem: []string{"foo", "bar"},
 			wantDimensions: []pdatautil.Dimension{
 				{Name: "http.method", Value: &defaultMethodValue},
 				{Name: "http.status_code", Value: nil},
 			},
+			wantDBSystem: []string{"foo", "bar"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
