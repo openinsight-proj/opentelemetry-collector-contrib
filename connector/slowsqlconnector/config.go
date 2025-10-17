@@ -46,11 +46,6 @@ func (c Config) Validate() error {
 		return err
 	}
 
-	err = validateDimensions(c.KeyDimensions)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
