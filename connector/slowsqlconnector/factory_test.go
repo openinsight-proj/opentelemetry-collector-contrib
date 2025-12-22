@@ -34,12 +34,12 @@ func TestNewConnector(t *testing.T) {
 				{Name: "http.method", Default: &defaultMethod},
 				{Name: "http.status_code"},
 			},
-			dBSystem: []string{"foo", "bar"},
+			dBSystem: []string{"h2", "mysql"},
 			wantDimensions: []pdatautil.Dimension{
 				{Name: "http.method", Value: &defaultMethodValue},
 				{Name: "http.status_code", Value: nil},
 			},
-			wantDBSystem: []string{"foo", "bar"},
+			wantDBSystem: []string{"h2", "mysql"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -5,6 +5,7 @@ package slowsqlconnector // import "github.com/open-telemetry/opentelemetry-coll
 
 import (
 	"context"
+
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -36,7 +37,6 @@ func newLogsConnector(logger *zap.Logger, config component.Config) *logsConnecto
 	cfg := config.(*Config)
 
 	return &logsConnector{
-		logger:        logger,
 		config:        *cfg,
 		dimensions:    newDimensions(cfg.Dimensions),
 		keyDimensions: newDimensions(cfg.KeyDimensions),

@@ -12,9 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/extension"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/datadogextension/internal/httpserver"
@@ -121,7 +123,8 @@ func TestExtensionWithProxyConfig(t *testing.T) {
 	// Create extension with proxy config
 	set := extension.Settings{
 		TelemetrySettings: component.TelemetrySettings{
-			Logger: zap.NewNop(),
+			Logger:   zap.NewNop(),
+			Resource: pcommon.NewResource(),
 		},
 	}
 	hostProvider := &mockSourceProvider{
@@ -143,7 +146,7 @@ func TestExtensionWithProxyConfig(t *testing.T) {
 	require.NotNil(t, serializer)
 
 	// Start and stop the extension to test lifecycle
-	err = ext.Start(t.Context(), nil)
+	err = ext.Start(t.Context(), componenttest.NewNopHost())
 	require.NoError(t, err)
 
 	err = ext.Shutdown(t.Context())

@@ -93,7 +93,7 @@ func (e *cmdbLogsExporter) exportResources(ctx context.Context, ld plog.Logs) er
 }
 
 func (e *cmdbLogsExporter) start(ctx context.Context, host component.Host) (err error) {
-	client, err := e.httpClientSettings.ToClient(ctx, host, e.set)
+	client, err := e.httpClientSettings.ToClient(ctx, host.GetExtensions(), e.set)
 	if err != nil {
 		return err
 	}

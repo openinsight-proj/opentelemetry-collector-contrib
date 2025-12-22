@@ -3,6 +3,10 @@ slowsql/default:
 
 # configuration with all possible parameters
 slowsql/full:
+  threshold: 600ms
+  db_system:
+    - h2
+    - mysql
   # Additional list of dimensions on top of:
   # - service.name
   # - span.name
@@ -10,14 +14,25 @@ slowsql/full:
   # - status.code
   # - exception.stacktrace (Only for log records)
   dimensions:
-    - name: k8s.uuid
+    - name: k8s.cluster.id
     - name: k8s.namespace.name
+    - name: k8s.pod.name
+    # span name
+    - name: name
+    - name: db.statement
+    - name: server.address
+      default: _unknown
 
   key_dimensions:
-    - name: k8s.uuid
+    - name: k8s.cluster.id
+      default: _unknown
     - name: k8s.namespace.name
+      default: _unknown
     - name: server.address
-    - name: db.connection_string # rollback to get value for server.address
+      default: _unknown
     - name: db.system
+      default: _unknown
     - name: service.name
+      default: _unknown
     - name: db.statement
+      default: _unknown
