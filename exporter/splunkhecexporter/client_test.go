@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
@@ -32,7 +33,6 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	conventions "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/splunkhecexporter/internal/metadata"
@@ -170,7 +170,7 @@ func createLogDataWithCustomLibraries(numResources int, libraries []string, numR
 				logRecord.Attributes().PutStr(splunk.DefaultSourceLabel, "myapp")
 				logRecord.Attributes().PutStr(splunk.DefaultSourceTypeLabel, "myapp-type")
 				logRecord.Attributes().PutStr(splunk.DefaultIndexLabel, "myindex")
-				logRecord.Attributes().PutStr(string(conventions.HostNameKey), "myhost")
+				logRecord.Attributes().PutStr("host.name", "myhost")
 				logRecord.Attributes().PutStr("custom", "custom")
 				logRecord.SetTimestamp(ts)
 			}
@@ -954,6 +954,24 @@ func TestReceiveLogEvent(t *testing.T) {
 	compareWithTestData(t, actual[0].body, "testdata/hec_log_event.json")
 }
 
+func TestLogEventTimestampMicrosecondPrecision(t *testing.T) {
+	// Verify that nanosecond timestamp precision is turned to microseconds in the HEC payload
+	logs := plog.NewLogs()
+	logRecord := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	logRecord.Body().SetStr("test log")
+	logRecord.SetTimestamp(pcommon.Timestamp(1574092046011123456))
+
+	cfg := NewFactory().CreateDefaultConfig().(*Config)
+	cfg.DisableCompression = true
+
+	actual, err := runLogExport(t, cfg, logs, 1)
+	assert.NoError(t, err)
+	assert.Len(t, actual, 1)
+
+	// time field in raw JSON should preserve microsecond precision
+	assert.Contains(t, string(actual[0].body), "1574092046.011123")
+}
+
 func TestReceiveMetricEvent(t *testing.T) {
 	metrics := createMetricsData(1, 1)
 	cfg := NewFactory().CreateDefaultConfig().(*Config)
@@ -1294,7 +1312,7 @@ func TestErrorReceived(t *testing.T) {
 	cfg.Endpoint = "http://" + listener.Addr().String() + "/services/collector"
 	// Disable QueueSettings to ensure that we execute the request when calling ConsumeTraces
 	// otherwise we will not see the error.
-	cfg.QueueSettings.Enabled = false
+	cfg.QueueSettings = configoptional.Default(*cfg.QueueSettings.Get())
 	// Disable retries to not wait too much time for the return error.
 	cfg.Enabled = false
 	cfg.DisableCompression = true
@@ -1346,7 +1364,7 @@ func TestErrorReceivedForbidden(t *testing.T) {
 	cfg.Endpoint = "http://" + listener.Addr().String() + "/services/collector"
 	// Disable QueueSettings to ensure that we execute the request when calling ConsumeTraces
 	// otherwise we will not see the error.
-	cfg.QueueSettings.Enabled = false
+	cfg.QueueSettings = configoptional.Default(*cfg.QueueSettings.Get())
 	// Disable retries to not wait too much time for the return error.
 	cfg.Enabled = false
 	cfg.DisableCompression = true
@@ -1400,7 +1418,7 @@ func TestInvalidURL(t *testing.T) {
 	cfg := factory.CreateDefaultConfig().(*Config)
 	// Disable queuing to ensure that we execute the request when calling ConsumeTraces
 	// otherwise we will not see the error.
-	cfg.QueueSettings.Enabled = false
+	cfg.QueueSettings = configoptional.Default(*cfg.QueueSettings.Get())
 	// Disable retries to not wait too much time for the return error.
 	cfg.Enabled = false
 	cfg.Endpoint = "ftp://example.com:134"
@@ -1439,7 +1457,7 @@ func TestHeartbeatStartupFailed(t *testing.T) {
 	cfg.Endpoint = "http://" + listener.Addr().String() + "/services/collector"
 	// Disable QueueSettings to ensure that we execute the request when calling ConsumeTraces
 	// otherwise we will not see the error.
-	cfg.QueueSettings.Enabled = false
+	cfg.QueueSettings = configoptional.Default(*cfg.QueueSettings.Get())
 	// Disable retries to not wait too much time for the return error.
 	cfg.Enabled = false
 	cfg.DisableCompression = true
@@ -1480,7 +1498,7 @@ func TestHeartbeatStartupPass_Disabled(t *testing.T) {
 	cfg.Endpoint = "http://" + listener.Addr().String() + "/services/collector"
 	// Disable QueueSettings to ensure that we execute the request when calling ConsumeTraces
 	// otherwise we will not see the error.
-	cfg.QueueSettings.Enabled = false
+	cfg.QueueSettings = configoptional.Default(*cfg.QueueSettings.Get())
 	// Disable retries to not wait too much time for the return error.
 	cfg.Enabled = false
 	cfg.DisableCompression = true
@@ -1515,7 +1533,7 @@ func TestHeartbeatStartupPass(t *testing.T) {
 	cfg.Endpoint = "http://" + listener.Addr().String() + "/services/collector"
 	// Disable QueueSettings to ensure that we execute the request when calling ConsumeTraces
 	// otherwise we will not see the error.
-	cfg.QueueSettings.Enabled = false
+	cfg.QueueSettings = configoptional.Default(*cfg.QueueSettings.Get())
 	// Disable retries to not wait too much time for the return error.
 	cfg.Enabled = false
 	cfg.DisableCompression = true
