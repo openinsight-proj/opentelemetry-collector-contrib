@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
-	conventions "go.opentelemetry.io/otel/semconv/v1.34.0"
+	conventionsv138 "go.opentelemetry.io/otel/semconv/v1.38.0"
+	conventions "go.opentelemetry.io/otel/semconv/v1.40.0"
 )
 
 /*
@@ -25,21 +26,21 @@ const (
 
 // clientAttributes is the set of known client attributes
 type clientAttributes struct {
-	// see https://github.com/open-telemetry/semantic-conventions/blob/v1.34.0/docs/registry/attributes/client.md
+	// see https://github.com/open-telemetry/semantic-conventions/blob/v1.37.0/docs/registry/attributes/client.md
 	ClientAddress string
 	ClientPort    int64
 }
 
 // serverAttributes is the set of known server attributes
 type serverAttributes struct {
-	// see https://github.com/open-telemetry/semantic-conventions/blob/v1.34.0/docs/registry/attributes/server.md
+	// see https://github.com/open-telemetry/semantic-conventions/blob/v1.37.0/docs/registry/attributes/server.md
 	ServerAddress string
 	ServerPort    int64
 }
 
 // networkAttributes is the set of known network attributes
 type networkAttributes struct {
-	// see https://github.com/open-telemetry/semantic-conventions/blob/v1.34.0/docs/registry/attributes/network.md
+	// see https://github.com/open-telemetry/semantic-conventions/blob/v1.37.0/docs/registry/attributes/network.md
 	NetworkLocalAddress    string
 	NetworkLocalPort       int64
 	NetworkPeerAddress     string
@@ -79,7 +80,7 @@ func (attrs *networkAttributes) MapAttribute(k string, v pcommon.Value) bool {
 // urlAttributes is the set of known attributes for URL
 type urlAttributes struct {
 	// common attributes
-	// https://github.com/open-telemetry/semantic-conventions/blob/v1.34.0/docs/registry/attributes/url.md
+	// https://github.com/open-telemetry/semantic-conventions/blob/v1.37.0/docs/registry/attributes/url.md
 	URLFragment string
 	URLFull     string
 	URLPath     string
@@ -96,7 +97,7 @@ type userAgentAttributes struct {
 // httpAttributes is the set of known attributes for HTTP Spans
 type httpAttributes struct {
 	// common attributes
-	// https://github.com/open-telemetry/semantic-conventions/blob/v1.34.0/docs/registry/attributes/http.md
+	// https://github.com/open-telemetry/semantic-conventions/blob/v1.37.0/docs/registry/attributes/http.md
 	HTTPRequestHeaders        map[string][]string
 	HTTPRequestMethod         string
 	HTTPRequestMethodOriginal string
@@ -230,13 +231,13 @@ type rpcAttributes struct {
 // MapAttribute attempts to map a Span attribute to one of the known types
 func (attrs *rpcAttributes) MapAttribute(k string, v pcommon.Value) bool {
 	switch k {
-	case string(conventions.RPCSystemKey):
+	case string(conventionsv138.RPCSystemKey):
 		attrs.RPCSystem = v.Str()
-	case string(conventions.RPCServiceKey):
+	case string(conventionsv138.RPCServiceKey):
 		attrs.RPCService = v.Str()
 	case string(conventions.RPCMethodKey):
 		attrs.RPCMethod = v.Str()
-	case string(conventions.RPCGRPCStatusCodeKey):
+	case string(conventionsv138.RPCGRPCStatusCodeKey):
 		attrs.RPCGRPCStatusCode = v.Int()
 
 	case string(conventions.ServerAddressKey):
