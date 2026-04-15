@@ -62,9 +62,6 @@ jobs:
       - name: Install dependencies
         if: steps.go-setup.outputs.cache-hit != 'true'
         run: make -j2 gomoddownload
-      - name: Install Tools
-        if: steps.go-setup.outputs.cache-hit != 'true'
-        run: make install-tools
       - name: Login to GitHub Package Registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
