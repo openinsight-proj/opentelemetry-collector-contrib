@@ -220,6 +220,7 @@ processor/sumologicprocessor processor/sumologic
 processor/tailsamplingprocessor processor/tailsampling
 processor/transformprocessor processor/transform
 processor/unrollprocessor processor/unroll
+processor/sanitizeerrorprocessor processor/sanitizeerror
 receiver/activedirectorydsreceiver receiver/activedirectoryds
 receiver/aerospikereceiver receiver/aerospike
 receiver/apachereceiver receiver/apache

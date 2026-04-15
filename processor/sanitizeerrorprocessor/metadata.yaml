@@ -1,0 +1,13 @@
+display_name: SanitizeError Processor
+type: sanitizeerror
+
+status:
+  class: processor
+  stability:
+    alpha: [traces, metrics, logs]
+  distributions: [contrib]
+  codeowners:
+    active: []
+
+tests:
+  config:
