@@ -121,6 +121,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/sumologicprocessor v0.109.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.109.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.109.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/wraperrorprocessor v0.109.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/activedirectorydsreceiver v0.109.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/aerospikereceiver v0.109.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/apachereceiver v0.109.0
@@ -1284,6 +1285,8 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/obse
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/remotetapprocessor => ../../processor/remotetapprocessor
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/sumologicprocessor => ../../processor/sumologicprocessor
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/wraperrorprocessor => ../../processor/wraperrorprocessor
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter => ../../exporter/syslogexporter
 
