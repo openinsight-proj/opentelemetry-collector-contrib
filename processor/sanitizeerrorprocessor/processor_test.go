@@ -16,6 +16,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.opentelemetry.io/collector/processor/processortest"
+	"go.uber.org/zap"
 )
 
 type customError struct {
@@ -27,28 +28,28 @@ func (e *customError) Error() string {
 }
 
 func TestSanitizeErrorNil(t *testing.T) {
-	assert.Nil(t, sanitizeError(nil))
+	assert.Nil(t, sanitizeError(nil, zap.NewNop()))
 }
 
 func TestSanitizeErrorPlain(t *testing.T) {
 	err := errors.New("plain error")
-	assert.Equal(t, err, sanitizeError(err))
+	assert.Equal(t, err, sanitizeError(err, zap.NewNop()))
 }
 
 func TestSanitizeErrorTypedNil(t *testing.T) {
 	var err *customError
-	assert.Nil(t, sanitizeError(err))
+	assert.Nil(t, sanitizeError(err, zap.NewNop()))
 }
 
 func TestSanitizeErrorTypedNilViaInterface(t *testing.T) {
 	var typedNil *customError
 	var err error = typedNil
-	assert.Nil(t, sanitizeError(err))
+	assert.Nil(t, sanitizeError(err, zap.NewNop()))
 }
 
 func TestSanitizeErrorNonNilPointer(t *testing.T) {
 	err := &customError{msg: "hello"}
-	assert.Equal(t, err, sanitizeError(err))
+	assert.Equal(t, err, sanitizeError(err, zap.NewNop()))
 }
 
 func TestCreateTracesProcessor(t *testing.T) {
@@ -78,7 +79,7 @@ func TestTracesSanitizerSanitizesTypedNil(t *testing.T) {
 	var typedNil *customError
 	next = consumertest.NewErr(typedNil)
 
-	s := &tracesSanitizer{next: next}
+	s := &tracesSanitizer{next: next, logger: zap.NewNop()}
 	err := s.ConsumeTraces(context.Background(), ptrace.NewTraces())
 	assert.NoError(t, err)
 }
@@ -87,7 +88,7 @@ func TestLogsSanitizerSanitizesTypedNil(t *testing.T) {
 	var typedNil *customError
 	next := consumertest.NewErr(typedNil)
 
-	s := &logsSanitizer{next: next}
+	s := &logsSanitizer{next: next, logger: zap.NewNop()}
 	err := s.ConsumeLogs(context.Background(), plog.NewLogs())
 	assert.NoError(t, err)
 }
@@ -96,7 +97,7 @@ func TestMetricsSanitizerSanitizesTypedNil(t *testing.T) {
 	var typedNil *customError
 	next := consumertest.NewErr(typedNil)
 
-	s := &metricsSanitizer{next: next}
+	s := &metricsSanitizer{next: next, logger: zap.NewNop()}
 	err := s.ConsumeMetrics(context.Background(), pmetric.NewMetrics())
 	assert.NoError(t, err)
 }

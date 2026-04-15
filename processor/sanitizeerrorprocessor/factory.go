@@ -46,7 +46,7 @@ func createTracesProcessor(
 		ctx,
 		set,
 		cfg,
-		&tracesSanitizer{next: nextConsumer},
+		&tracesSanitizer{next: nextConsumer, logger: set.Logger},
 		func(_ context.Context, td ptrace.Traces) (ptrace.Traces, error) {
 			return td, nil
 		},
@@ -65,7 +65,7 @@ func createLogsProcessor(
 		ctx,
 		set,
 		cfg,
-		&logsSanitizer{next: nextConsumer},
+		&logsSanitizer{next: nextConsumer, logger: set.Logger},
 		func(_ context.Context, ld plog.Logs) (plog.Logs, error) {
 			return ld, nil
 		},
@@ -84,7 +84,7 @@ func createMetricsProcessor(
 		ctx,
 		set,
 		cfg,
-		&metricsSanitizer{next: nextConsumer},
+		&metricsSanitizer{next: nextConsumer, logger: set.Logger},
 		func(_ context.Context, md pmetric.Metrics) (pmetric.Metrics, error) {
 			return md, nil
 		},
