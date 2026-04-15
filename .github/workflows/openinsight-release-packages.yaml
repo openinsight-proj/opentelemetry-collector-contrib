@@ -21,11 +21,13 @@ on:
     branches:
       - main
       - insight-main
+      - release-*
     tags: ["v*"]
   pull_request:
     branches:
       - main
       - insight-main
+      - release-*
 
 env:
   # Use docker.io for Docker Hub if empty
