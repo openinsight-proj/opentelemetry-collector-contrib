@@ -12,6 +12,7 @@ status:
 attributes:
   leap.status:
     description: how the chrony is handling leap seconds
+    requirement_level: recommended
     type: string
     enum:
     - normal

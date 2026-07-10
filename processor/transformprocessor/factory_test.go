@@ -23,6 +23,7 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlexemplar"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlmetric"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlprofile"
@@ -35,19 +36,22 @@ import (
 
 func assertConfigContainsDefaultFunctions(t *testing.T, config Config) {
 	t.Helper()
-	for _, f := range DefaultLogFunctionsNew() {
+	for _, f := range DefaultLogFunctions() {
 		assert.Contains(t, config.logFunctions, f.Name(), "missing log function %v", f.Name())
 	}
-	for _, f := range DefaultDataPointFunctionsNew() {
+	for _, f := range DefaultDataPointFunctions() {
 		assert.Contains(t, config.dataPointFunctions, f.Name(), "missing data point function %v", f.Name())
 	}
-	for _, f := range DefaultMetricFunctionsNew() {
+	for _, f := range DefaultExemplarFunctions() {
+		assert.Contains(t, config.exemplarFunctions, f.Name(), "missing exemplar function %v", f.Name())
+	}
+	for _, f := range DefaultMetricFunctions() {
 		assert.Contains(t, config.metricFunctions, f.Name(), "missing metric function %v", f.Name())
 	}
-	for _, f := range DefaultSpanFunctionsNew() {
+	for _, f := range DefaultSpanFunctions() {
 		assert.Contains(t, config.spanFunctions, f.Name(), "missing span function %v", f.Name())
 	}
-	for _, f := range DefaultSpanEventFunctionsNew() {
+	for _, f := range DefaultSpanEventFunctions() {
 		assert.Contains(t, config.spanEventFunctions, f.Name(), "missing span event function %v", f.Name())
 	}
 	for _, f := range DefaultProfileFunctions() {
@@ -62,13 +66,13 @@ func TestFactory_Type(t *testing.T) {
 
 func TestFactory_CreateDefaultConfig(t *testing.T) {
 	t.Cleanup(func() {
-		_ = featuregate.GlobalRegistry().Set(metadata.ProcessorTransformDefaultErrorModeIgnoreFeatureGate.ID(), false)
+		_ = featuregate.GlobalRegistry().Set(metadata.ProcessorTransformDefaultErrorModeIgnoreFeatureGate.ID(), true)
 	})
 
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig()
 	assert.EqualExportedValues(t, &Config{
-		ErrorMode:         ottl.PropagateError,
+		ErrorMode:         ottl.IgnoreError,
 		TraceStatements:   []common.ContextStatements{},
 		MetricStatements:  []common.ContextStatements{},
 		LogStatements:     []common.ContextStatements{},
@@ -77,11 +81,11 @@ func TestFactory_CreateDefaultConfig(t *testing.T) {
 	assertConfigContainsDefaultFunctions(t, *cfg.(*Config))
 	require.NoError(t, componenttest.CheckConfigStruct(cfg))
 
-	err := featuregate.GlobalRegistry().Set(metadata.ProcessorTransformDefaultErrorModeIgnoreFeatureGate.ID(), true)
+	err := featuregate.GlobalRegistry().Set(metadata.ProcessorTransformDefaultErrorModeIgnoreFeatureGate.ID(), false)
 	require.NoError(t, err)
 
 	cfg = factory.CreateDefaultConfig()
-	assert.Equal(t, ottl.IgnoreError, cfg.(*Config).ErrorMode)
+	assert.Equal(t, ottl.PropagateError, cfg.(*Config).ErrorMode)
 }
 
 func TestFactoryCreateProcessor_Empty(t *testing.T) {
@@ -182,6 +186,38 @@ func TestFactoryCreateMetrics(t *testing.T) {
 	require.NoError(t, err)
 
 	val, ok := metric.Sum().DataPoints().At(0).Attributes().Get("test")
+	assert.True(t, ok)
+	assert.Equal(t, "pass", val.Str())
+}
+
+func TestFactoryCreateMetrics_Exemplar(t *testing.T) {
+	factory := NewFactory()
+	cfg := factory.CreateDefaultConfig()
+	oCfg := cfg.(*Config)
+	oCfg.ErrorMode = ottl.IgnoreError
+	oCfg.MetricStatements = []common.ContextStatements{
+		{
+			Context: "exemplar",
+			Statements: []string{
+				`set(filtered_attributes["test"], "pass") where metric.name == "operationA"`,
+			},
+		},
+	}
+	metricsProcessor, err := factory.CreateMetrics(t.Context(), processortest.NewNopSettings(metadata.Type), cfg, consumertest.NewNop())
+	require.NoError(t, err)
+
+	metrics := pmetric.NewMetrics()
+	metric := metrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+	metric.SetName("operationA")
+	exemplar := metric.SetEmptySum().DataPoints().AppendEmpty().Exemplars().AppendEmpty()
+
+	_, ok := exemplar.FilteredAttributes().Get("test")
+	assert.False(t, ok)
+
+	err = metricsProcessor.ConsumeMetrics(t.Context(), metrics)
+	require.NoError(t, err)
+
+	val, ok := exemplar.FilteredAttributes().Get("test")
 	assert.True(t, ok)
 	assert.Equal(t, "pass", val.Str())
 }
@@ -930,9 +966,9 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithSpanFunctionsNew(DefaultSpanFunctionsNew()),
-				WithSpanFunctionsNew([]ottl.Factory[*ottlspan.TransformContext]{createTestFuncFactory[*ottlspan.TransformContext]("TestSpanFunc")}),
-				WithSpanEventFunctionsNew(DefaultSpanEventFunctionsNew()),
+				WithSpanFunctions(DefaultSpanFunctions()),
+				WithSpanFunctions([]ottl.Factory[*ottlspan.TransformContext]{createTestFuncFactory[*ottlspan.TransformContext]("TestSpanFunc")}),
+				WithSpanEventFunctions(DefaultSpanEventFunctions()),
 			},
 		},
 		{
@@ -945,8 +981,8 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "TestSpanFunc"`,
 			factoryOptions: []FactoryOption{
-				WithSpanFunctionsNew(DefaultSpanFunctionsNew()),
-				WithSpanEventFunctionsNew(DefaultSpanEventFunctionsNew()),
+				WithSpanFunctions(DefaultSpanFunctions()),
+				WithSpanEventFunctions(DefaultSpanEventFunctions()),
 			},
 		},
 		{
@@ -958,7 +994,7 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithSpanFunctionsNew([]ottl.Factory[*ottlspan.TransformContext]{createTestFuncFactory[*ottlspan.TransformContext]("testSpanFunc")}),
+				WithSpanFunctions([]ottl.Factory[*ottlspan.TransformContext]{createTestFuncFactory[*ottlspan.TransformContext]("testSpanFunc")}),
 			},
 		},
 		{
@@ -971,7 +1007,7 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "set"`,
 			factoryOptions: []FactoryOption{
-				WithSpanFunctionsNew([]ottl.Factory[*ottlspan.TransformContext]{createTestFuncFactory[*ottlspan.TransformContext]("TestSpanFunc")}),
+				WithSpanFunctions([]ottl.Factory[*ottlspan.TransformContext]{createTestFuncFactory[*ottlspan.TransformContext]("TestSpanFunc")}),
 			},
 		},
 		{
@@ -983,9 +1019,9 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithSpanFunctionsNew(DefaultSpanFunctionsNew()),
-				WithSpanEventFunctionsNew(DefaultSpanEventFunctionsNew()),
-				WithSpanEventFunctionsNew([]ottl.Factory[*ottlspanevent.TransformContext]{createTestFuncFactory[*ottlspanevent.TransformContext]("TestSpanEventFunc")}),
+				WithSpanFunctions(DefaultSpanFunctions()),
+				WithSpanEventFunctions(DefaultSpanEventFunctions()),
+				WithSpanEventFunctions([]ottl.Factory[*ottlspanevent.TransformContext]{createTestFuncFactory[*ottlspanevent.TransformContext]("TestSpanEventFunc")}),
 			},
 		},
 		{
@@ -998,8 +1034,8 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "TestSpanEventFunc"`,
 			factoryOptions: []FactoryOption{
-				WithSpanFunctionsNew(DefaultSpanFunctionsNew()),
-				WithSpanEventFunctionsNew(DefaultSpanEventFunctionsNew()),
+				WithSpanFunctions(DefaultSpanFunctions()),
+				WithSpanEventFunctions(DefaultSpanEventFunctions()),
 			},
 		},
 		{
@@ -1011,7 +1047,7 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithSpanEventFunctionsNew([]ottl.Factory[*ottlspanevent.TransformContext]{createTestFuncFactory[*ottlspanevent.TransformContext]("testSpanEventFunc")}),
+				WithSpanEventFunctions([]ottl.Factory[*ottlspanevent.TransformContext]{createTestFuncFactory[*ottlspanevent.TransformContext]("testSpanEventFunc")}),
 			},
 		},
 		{
@@ -1024,7 +1060,7 @@ func Test_FactoryWithFunctions_CreateTraces(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "set"`,
 			factoryOptions: []FactoryOption{
-				WithSpanEventFunctionsNew([]ottl.Factory[*ottlspanevent.TransformContext]{createTestFuncFactory[*ottlspanevent.TransformContext]("TestSpanEventFunc")}),
+				WithSpanEventFunctions([]ottl.Factory[*ottlspanevent.TransformContext]{createTestFuncFactory[*ottlspanevent.TransformContext]("TestSpanEventFunc")}),
 			},
 		},
 	}
@@ -1067,8 +1103,8 @@ func Test_FactoryWithFunctions_CreateLogs(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithLogFunctionsNew(DefaultLogFunctionsNew()),
-				WithLogFunctionsNew([]ottl.Factory[*ottllog.TransformContext]{createTestFuncFactory[*ottllog.TransformContext]("TestLogFunc")}),
+				WithLogFunctions(DefaultLogFunctions()),
+				WithLogFunctions([]ottl.Factory[*ottllog.TransformContext]{createTestFuncFactory[*ottllog.TransformContext]("TestLogFunc")}),
 			},
 		},
 		{
@@ -1081,7 +1117,7 @@ func Test_FactoryWithFunctions_CreateLogs(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "TestLogFunc"`,
 			factoryOptions: []FactoryOption{
-				WithLogFunctionsNew(DefaultLogFunctionsNew()),
+				WithLogFunctions(DefaultLogFunctions()),
 			},
 		},
 		{
@@ -1093,7 +1129,7 @@ func Test_FactoryWithFunctions_CreateLogs(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithLogFunctionsNew([]ottl.Factory[*ottllog.TransformContext]{createTestFuncFactory[*ottllog.TransformContext]("testLogFunc")}),
+				WithLogFunctions([]ottl.Factory[*ottllog.TransformContext]{createTestFuncFactory[*ottllog.TransformContext]("testLogFunc")}),
 			},
 		},
 		{
@@ -1106,7 +1142,7 @@ func Test_FactoryWithFunctions_CreateLogs(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "set"`,
 			factoryOptions: []FactoryOption{
-				WithLogFunctionsNew([]ottl.Factory[*ottllog.TransformContext]{createTestFuncFactory[*ottllog.TransformContext]("TestLogFunc")}),
+				WithLogFunctions([]ottl.Factory[*ottllog.TransformContext]{createTestFuncFactory[*ottllog.TransformContext]("TestLogFunc")}),
 			},
 		},
 	}
@@ -1150,9 +1186,9 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithMetricFunctionsNew(DefaultMetricFunctionsNew()),
-				WithMetricFunctionsNew([]ottl.Factory[*ottlmetric.TransformContext]{createTestFuncFactory[*ottlmetric.TransformContext]("TestMetricFunc")}),
-				WithDataPointFunctionsNew(DefaultDataPointFunctionsNew()),
+				WithMetricFunctions(DefaultMetricFunctions()),
+				WithMetricFunctions([]ottl.Factory[*ottlmetric.TransformContext]{createTestFuncFactory[*ottlmetric.TransformContext]("TestMetricFunc")}),
+				WithDataPointFunctions(DefaultDataPointFunctions()),
 			},
 		},
 		{
@@ -1165,8 +1201,8 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "TestMetricFunc"`,
 			factoryOptions: []FactoryOption{
-				WithMetricFunctionsNew(DefaultMetricFunctionsNew()),
-				WithDataPointFunctionsNew(DefaultDataPointFunctionsNew()),
+				WithMetricFunctions(DefaultMetricFunctions()),
+				WithDataPointFunctions(DefaultDataPointFunctions()),
 			},
 		},
 		{
@@ -1178,7 +1214,7 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithMetricFunctionsNew([]ottl.Factory[*ottlmetric.TransformContext]{createTestFuncFactory[*ottlmetric.TransformContext]("testMetricFunc")}),
+				WithMetricFunctions([]ottl.Factory[*ottlmetric.TransformContext]{createTestFuncFactory[*ottlmetric.TransformContext]("testMetricFunc")}),
 			},
 		},
 		{
@@ -1191,7 +1227,7 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "set"`,
 			factoryOptions: []FactoryOption{
-				WithMetricFunctionsNew([]ottl.Factory[*ottlmetric.TransformContext]{createTestFuncFactory[*ottlmetric.TransformContext]("TestMetricFunc")}),
+				WithMetricFunctions([]ottl.Factory[*ottlmetric.TransformContext]{createTestFuncFactory[*ottlmetric.TransformContext]("TestMetricFunc")}),
 			},
 		},
 		{
@@ -1203,9 +1239,9 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithMetricFunctionsNew(DefaultMetricFunctionsNew()),
-				WithDataPointFunctionsNew(DefaultDataPointFunctionsNew()),
-				WithDataPointFunctionsNew([]ottl.Factory[*ottldatapoint.TransformContext]{createTestFuncFactory[*ottldatapoint.TransformContext]("TestDataPointFunc")}),
+				WithMetricFunctions(DefaultMetricFunctions()),
+				WithDataPointFunctions(DefaultDataPointFunctions()),
+				WithDataPointFunctions([]ottl.Factory[*ottldatapoint.TransformContext]{createTestFuncFactory[*ottldatapoint.TransformContext]("TestDataPointFunc")}),
 			},
 		},
 		{
@@ -1218,8 +1254,8 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "TestDataPointFunc"`,
 			factoryOptions: []FactoryOption{
-				WithMetricFunctionsNew(DefaultMetricFunctionsNew()),
-				WithDataPointFunctionsNew(DefaultDataPointFunctionsNew()),
+				WithMetricFunctions(DefaultMetricFunctions()),
+				WithDataPointFunctions(DefaultDataPointFunctions()),
 			},
 		},
 		{
@@ -1231,7 +1267,7 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithDataPointFunctionsNew([]ottl.Factory[*ottldatapoint.TransformContext]{createTestFuncFactory[*ottldatapoint.TransformContext]("testDataPointFunc")}),
+				WithDataPointFunctions([]ottl.Factory[*ottldatapoint.TransformContext]{createTestFuncFactory[*ottldatapoint.TransformContext]("testDataPointFunc")}),
 			},
 		},
 		{
@@ -1244,7 +1280,58 @@ func Test_FactoryWithFunctions_CreateMetrics(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "set"`,
 			factoryOptions: []FactoryOption{
-				WithDataPointFunctionsNew([]ottl.Factory[*ottldatapoint.TransformContext]{createTestFuncFactory[*ottldatapoint.TransformContext]("TestDataPointFunc")}),
+				WithDataPointFunctions([]ottl.Factory[*ottldatapoint.TransformContext]{createTestFuncFactory[*ottldatapoint.TransformContext]("TestDataPointFunc")}),
+			},
+		},
+		{
+			name: "with exemplar functions : statement with added exemplar func",
+			statements: []common.ContextStatements{
+				{
+					Context:    common.ContextID("exemplar"),
+					Statements: []string{`set(cache["attr"], TestExemplarFunc())`},
+				},
+			},
+			factoryOptions: []FactoryOption{
+				WithExemplarFunctions(DefaultExemplarFunctions()),
+				WithExemplarFunctions([]ottl.Factory[*ottlexemplar.TransformContext]{createTestFuncFactory[*ottlexemplar.TransformContext]("TestExemplarFunc")}),
+			},
+		},
+		{
+			name: "with exemplar functions : statement with missing exemplar func",
+			statements: []common.ContextStatements{
+				{
+					Context:    common.ContextID("exemplar"),
+					Statements: []string{`set(cache["attr"], TestExemplarFunc())`},
+				},
+			},
+			wantErrorWith: `undefined function "TestExemplarFunc"`,
+			factoryOptions: []FactoryOption{
+				WithExemplarFunctions(DefaultExemplarFunctions()),
+			},
+		},
+		{
+			name: "with exemplar functions : only custom functions",
+			statements: []common.ContextStatements{
+				{
+					Context:    common.ContextID("exemplar"),
+					Statements: []string{`testExemplarFunc()`},
+				},
+			},
+			factoryOptions: []FactoryOption{
+				WithExemplarFunctions([]ottl.Factory[*ottlexemplar.TransformContext]{createTestFuncFactory[*ottlexemplar.TransformContext]("testExemplarFunc")}),
+			},
+		},
+		{
+			name: "with exemplar functions : missing default functions",
+			statements: []common.ContextStatements{
+				{
+					Context:    common.ContextID("exemplar"),
+					Statements: []string{`set(filtered_attributes["test"], "TestExemplarFunc()")`},
+				},
+			},
+			wantErrorWith: `undefined function "set"`,
+			factoryOptions: []FactoryOption{
+				WithExemplarFunctions([]ottl.Factory[*ottlexemplar.TransformContext]{createTestFuncFactory[*ottlexemplar.TransformContext]("TestExemplarFunc")}),
 			},
 		},
 	}
@@ -1287,8 +1374,8 @@ func Test_FactoryWithFunctions_CreateProfiles(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithProfileFunctionsNew(DefaultProfileFunctionsNew()),
-				WithProfileFunctionsNew([]ottl.Factory[*ottlprofile.TransformContext]{createTestFuncFactory[*ottlprofile.TransformContext]("TestProfileFunc")}),
+				WithProfileFunctions(DefaultProfileFunctions()),
+				WithProfileFunctions([]ottl.Factory[*ottlprofile.TransformContext]{createTestFuncFactory[*ottlprofile.TransformContext]("TestProfileFunc")}),
 			},
 		},
 		{
@@ -1301,7 +1388,7 @@ func Test_FactoryWithFunctions_CreateProfiles(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "TestProfileFunc"`,
 			factoryOptions: []FactoryOption{
-				WithProfileFunctionsNew(DefaultProfileFunctionsNew()),
+				WithProfileFunctions(DefaultProfileFunctions()),
 			},
 		},
 		{
@@ -1313,7 +1400,7 @@ func Test_FactoryWithFunctions_CreateProfiles(t *testing.T) {
 				},
 			},
 			factoryOptions: []FactoryOption{
-				WithProfileFunctionsNew([]ottl.Factory[*ottlprofile.TransformContext]{createTestFuncFactory[*ottlprofile.TransformContext]("testProfileFunc")}),
+				WithProfileFunctions([]ottl.Factory[*ottlprofile.TransformContext]{createTestFuncFactory[*ottlprofile.TransformContext]("testProfileFunc")}),
 			},
 		},
 		{
@@ -1326,7 +1413,7 @@ func Test_FactoryWithFunctions_CreateProfiles(t *testing.T) {
 			},
 			wantErrorWith: `undefined function "set"`,
 			factoryOptions: []FactoryOption{
-				WithProfileFunctionsNew([]ottl.Factory[*ottlprofile.TransformContext]{createTestFuncFactory[*ottlprofile.TransformContext]("TestProfileFunc")}),
+				WithProfileFunctions([]ottl.Factory[*ottlprofile.TransformContext]{createTestFuncFactory[*ottlprofile.TransformContext]("TestProfileFunc")}),
 			},
 		},
 	}
